@@ -25,6 +25,9 @@ on:
 #        deployKubernetes,
 #        deployHelm,
 #        slackDeploy,
+
+
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # The "build" workflow
@@ -38,10 +41,21 @@ jobs:
     - uses: actions/checkout@v2
 
     # Setup Go
+    # TODO: Ensure that this caches the .gomod and .gocache folders
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
         go-version: '1.17.2' # The Go version to download (if necessary) and use.
+
+    - name: Bitbucket Auth
+      env:
+        GIT_DEPLOYMENT_KEY: ${{secrets.BITBUCKET_SSH_KEY}}
+      run: | 
+        mkdir -p /root/.ssh
+        echo "$GIT_DEPLOYMENT_KEY" > /root/.ssh/id_rsa
+        chmod 0600 /root/.ssh/id_rsa
+        ssh-keyscan -t rsa bitbucket.org >> /root/.ssh/known_hosts
+        git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"
 
     # Install all the dependencies
     - name: Install dependencies
@@ -51,13 +65,22 @@ jobs:
 
     # Run build of the application
     - name: Run build
-      run: go build .
+      env:
+        GOPRIVATE: bitbucket.org
+      run: go build -tags development -ldflags="-s -w" -v
+
 
     # Run vet & lint on the code
     - name: Run vet & lint
       run: |
         go vet .
         golint .
+
+    # Start a Mongo DB server for testing
+    - name: Start MongoDB
+      uses: supercharge/mongodb-github-action@1.7.0
+      with:
+        mongodb-version: ${{ matrix.mongodb-version }}
 
     # Run testing on the code
     - name: Run testing
