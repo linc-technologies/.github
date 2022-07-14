@@ -7,9 +7,9 @@ on:
 #      username:
 #        required: true
 #        type: string
-#    secrets:
-#      token:
-#        required: true
+    secrets:
+      BITBUCKET_SSH_KEY:
+        required: true
 
 
 # GoLang steps:
