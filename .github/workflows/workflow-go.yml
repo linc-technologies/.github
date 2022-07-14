@@ -47,15 +47,20 @@ jobs:
       with:
         go-version: '1.17.2' # The Go version to download (if necessary) and use.
 
-    - name: Bitbucket Auth
-      env:
-        GIT_DEPLOYMENT_KEY: ${{secrets.BITBUCKET_SSH_KEY}}
-      run: | 
-        mkdir -p /root/.ssh
-        echo "$GIT_DEPLOYMENT_KEY" > /root/.ssh/id_rsa
-        chmod 0600 /root/.ssh/id_rsa
-        ssh-keyscan -t rsa bitbucket.org >> /root/.ssh/known_hosts
-        git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"
+#    - name: Bitbucket Auth
+#      env:
+#        GIT_DEPLOYMENT_KEY: ${{secrets.BITBUCKET_SSH_KEY}}
+#      run: |
+#        mkdir -p /root/.ssh
+#        echo "$GIT_DEPLOYMENT_KEY" > /root/.ssh/id_rsa
+#        chmod 0600 /root/.ssh/id_rsa
+#        ssh-keyscan -t rsa bitbucket.org >> /root/.ssh/known_hosts
+#        git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"
+
+    - name: Bitbucket SSH
+      uses: webfactory/ssh-agent@v0.5.4
+      with:
+        ssh-private-key: ${{ secrets.BITBUCKET_SSH_KEY }}
 
     # Install all the dependencies
     - name: Install dependencies
