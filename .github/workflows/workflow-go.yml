@@ -3,7 +3,7 @@ name: "Go"
 on:
   workflow_dispatch:
   workflow_call:
-  workflow_run:
+
 
 # TODO: Complete these
 # GoLang steps:
