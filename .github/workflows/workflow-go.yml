@@ -125,6 +125,23 @@ jobs:
           tags: ${{ env.GITHUB_RUN_NUMBER }}
           file: Dockerfile.drone
 
+      - name: Configure Kubectl
+        uses: azure/setup-kubectl@v2.0
+#        with:
+#          version: '<version>' # default is latest stable
+        run: |
+          kubectl --version
+
+#      - name: "Deploy to Kubernetes"
+#        uses: firehed/deploy-to-kubernetes-action@v0.3.0
+#        with:
+#          namespace: github-actions
+#          deployment: www
+#          container: server
+#          image: my/image:${{ github.sha }}
+#          token: ${{ secrets.GITHUB_TOKEN }}
+
+
       - name: Post to a Slack channel
         if: always()
         id: slack
