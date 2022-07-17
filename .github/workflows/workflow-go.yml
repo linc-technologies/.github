@@ -129,8 +129,8 @@ jobs:
         uses: azure/setup-kubectl@v2.0
 #        with:
 #          version: '<version>' # default is latest stable
-        run: |
-          kubectl --version
+
+      - run: kubectl version
 
 #      - name: "Deploy to Kubernetes"
 #        uses: firehed/deploy-to-kubernetes-action@v0.3.0
