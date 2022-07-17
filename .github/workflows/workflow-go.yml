@@ -22,6 +22,7 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+
   # The "build" workflow
   compile:
     # The type of runner that the job will run on
@@ -84,6 +85,10 @@ jobs:
           cd ./cmd/*/
           go build -tags development -ldflags="-s -w" -v
 
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
 # TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
 #      # Run vet & lint on the code
 #      - name: Run vet & lint
@@ -106,6 +111,9 @@ jobs:
       - name: Run testing
         run: go test -vet=off -tags internal -v ./...
 
+  build:
+    runs-on: ubuntu-latest
+    steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -125,12 +133,21 @@ jobs:
           tags: ${{ env.GITHUB_RUN_NUMBER }}
           file: Dockerfile.drone
 
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    steps:
       - name: Configure Kubectl
         uses: azure/setup-kubectl@v2.0
 #        with:
 #          version: '<version>' # default is latest stable
 
       - run: kubectl version
+
+      - name: "Kubernetes Auth"
+        run: |
+          kubectl config set-credentials default --token=${{ env.KUBERNETES_TOKEN }}
+          
 
 #      - name: "Deploy to Kubernetes"
 #        uses: firehed/deploy-to-kubernetes-action@v0.3.0
@@ -142,28 +159,28 @@ jobs:
 #          token: ${{ secrets.GITHUB_TOKEN }}
 
 
-      - name: Post to a Slack channel
-        if: always()
-        id: slack
-        uses: slackapi/slack-github-action@v1.19.0
-        with:
-          # Slack channel id, channel name, or user id to post message.
-          # See also: https://api.slack.com/methods/chat.postMessage#channels
-          channel-id: 'G3184HDT6'
-          # For posting a rich message using Block Kit
-          payload: |
-            {
-              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+#      - name: Post to a Slack channel
+#        if: always()
+#        id: slack
+#        uses: slackapi/slack-github-action@v1.19.0
+#        with:
+#          # Slack channel id, channel name, or user id to post message.
+#          # See also: https://api.slack.com/methods/chat.postMessage#channels
+#          channel-id: 'G3184HDT6'
+#          # For posting a rich message using Block Kit
+#          payload: |
+#            {
+#              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+#              "blocks": [
+#                {
+#                  "type": "section",
+#                  "text": {
+#                    "type": "mrkdwn",
+#                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+#                  }
+#                }
+#              ]
+#            }
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+#          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
