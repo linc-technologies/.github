@@ -100,14 +100,20 @@ jobs:
           username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
+      - name: Bump build number
+        id: num
+        env:
+          BUILD: github.run_number
+        run: echo "::set-output name=build_num::$(($BUILD+1000))"
+
       - name: Build and export to Docker
         uses: docker/build-push-action@v3
         id: push
         with:
           context: .
           load: true
-          push: false
-          tags: ${{ env.GITHUB_RUN_NUMBER }}
+          push: true
+          tags: linced.azurecr.io/${{ github.event.repository.name }}:${{ steps.num.outputs.nuild_num }}
           file: Dockerfile.drone
 
 
