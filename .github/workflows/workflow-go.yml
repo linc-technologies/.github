@@ -137,25 +137,25 @@ jobs:
 #          version: '<version>' # default is latest stable
 
 
-      - name: "Kubernetes Auth Dev"
+      - name: Kubernetes Auth (Dev AU)
         if: ${{ github.ref  != 'refs/heads/production' }}
         run: |
-          kubectl config set-credentials default --token=${{ env.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
           # If cert provided...
-          # kubectl config set-cluster default --server=${{ env.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
           # If cert not provided
-          kubectl config set-cluster default --server=${{ env.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
           kubectl config set-context default --cluster=default --user=default
           kubectl config use-context default
 
-      - name: "Kubernetes Auth Prod"
+      - name: Kubernetes Auth (Prod AU East)
         if: ${{ github.ref == 'refs/heads/production' }}
         run: |
-          kubectl config set-credentials default --token=${{ env.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
           # If cert provided...
-          # kubectl config set-cluster default --server=${{ env.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
           # If cert not provided
-          kubectl config set-cluster default --server=${{ env.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
           kubectl config set-context default --cluster=default --user=default
           kubectl config use-context default
 
