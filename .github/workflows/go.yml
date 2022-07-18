@@ -24,6 +24,7 @@ on:
 jobs:
   # The "build" workflow
   build:
+    name: "Build"
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -122,7 +123,7 @@ jobs:
       - name: Bump build number
         id: num
         env:
-          BUILD: github.run_number
+          BUILD: ${{ github.run_number }}
         run: echo "::set-output name=build_num::$(($BUILD+1000))"
 
       - name: Build and export to Docker
