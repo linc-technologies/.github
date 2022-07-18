@@ -126,6 +126,7 @@ jobs:
           BUILD: ${{ github.run_id }}
         run: |
           echo $BUILD
+          env | grep -i github
           echo ${{ github.run_id }}
           echo ${{ github.run_number }}
           echo "::set-output name=build_num::$(($BUILD+1000))"
