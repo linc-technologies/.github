@@ -3,14 +3,6 @@ name: "Kubernetes"
 on:
   workflow_call:
     inputs:
-      kubernetes_server:
-        description: 'Kubernetes API server to connect to.'
-        required: true
-        type: string
-      kubernetes_token:
-        description: 'Token for authentication with the Kubernetes api.'
-        required: false
-        type: string
       kubernetes_namespace:
         description: 'Kubernetes namespace to deploy to.'
         required: true
