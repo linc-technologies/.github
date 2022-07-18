@@ -86,7 +86,7 @@ jobs:
       - name: Run testing
         run: go test -vet=off -tags internal -v ./...
 
-      - uses: ./_slack.yml
+      - uses: linc-technologies/.github/.github/workflows/_slack.yml@master
         with:
           type: "build"
 
@@ -110,7 +110,7 @@ jobs:
           file: Dockerfile.drone
 
   deploy:
-    uses: ./_kubernetes.yml
+    uses: linc-technologies/.github/.github/workflows/_kubernetes.yml@master
     secrets: inherit
     with:
       kubernetes_namespace: github.ref_name
@@ -119,7 +119,7 @@ jobs:
       container_name:
 
   deployment_notification:
-    uses: ./_slack.yml
+    uses: linc-technologies/.github/.github/workflows/_slack.yml@master
     secrets: inherit
     with:
       type: "deploy"
