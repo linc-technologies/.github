@@ -1,0 +1,73 @@
+name: "Kubernetes"
+
+on:
+  workflow_call:
+    inputs:
+      kubernetes_server:
+        description: 'Kubernetes API server to connect to.'
+        required: true
+        type: string
+      kubernetes_token:
+        description: 'Token for authentication with the Kubernetes api.'
+        required: false
+        type: string
+      kubernetes_namespace:
+        description: 'Kubernetes namespace to deploy to.'
+        required: true
+        type: string
+      kubernetes_deployment:
+        description: 'Kubernetes deployment to target.'
+        required: true
+        type: string
+      container_tag:
+        description:  'Container repository and tag to update the target image to.'
+        required: true
+        type: string
+      container_name:
+        description:  'Container name within the deployment to update.'
+        required: true
+        type: string
+
+jobs:
+
+  deploy:
+    name: "Deploy"
+    runs-on: ubuntu-latest
+    steps:
+
+      # Install Kubectl
+      - name: Configure Kubectl
+        uses: azure/setup-kubectl@v2.0
+
+      # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
+      - name: Kubernetes Auth (Dev AU East)
+        if: ${{ github.ref  != 'refs/heads/production' }}
+        run: |
+          kubectl config set-credentials default --token=${{ env.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          # If cert provided...
+          # kubectl config set-cluster default --server=${{ env.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ env.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=default
+          kubectl config use-context default
+
+      # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
+      - name: Kubernetes Auth (Prod AU East)
+        if: ${{ github.ref == 'refs/heads/production' }}
+        run: |
+          kubectl config set-credentials default --token=${{ env.PRODUCTION_AU_EAST_AKS_TOKEN }}
+          # If cert provided...
+          # kubectl config set-cluster default --server=${{ env.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ env.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=default
+          kubectl config use-context default
+
+      # Showcase the client and server Kubectl versions
+      - run: kubectl version
+
+      # TODO: Deploy some stuff
+      - name: Kubernetes Deploy
+        run: |
+          echo "Updating ${{ inputs.container_name }} in deployment/${{ inputs.kubernetes_deployment }} to ${{ inputs.container_tag}} in the ${{ inputs.kubernetes_namespace}} namespace "
+          kubectl set image deployment/${{ inputs.kubernetes_deployment }} ${{ inputs.container_name }}=${{ inputs.container_tag}} --record=true
