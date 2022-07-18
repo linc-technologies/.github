@@ -66,7 +66,7 @@ jobs:
       # Install all the dependencies
       - name: Install dependencies
         env:
-          GOPRIVATE: bitbucket.org
+          GOPRIVATE: github.com
         run: |
           go version
           go get -u golang.org/x/lint/golint
@@ -79,7 +79,7 @@ jobs:
       # Run build of the application
       - name: Run build
         env:
-          GOPRIVATE: bitbucket.org
+          GOPRIVATE: github.com
         run: |
           cd ./cmd/*/
           go build -tags development -ldflags="-s -w" -v
