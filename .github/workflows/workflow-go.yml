@@ -108,9 +108,8 @@ jobs:
         with:
           mongodb-version: '4.4'
 
-      - run: |
-          ls
-          pwd
+      - run: ls -la
+      - run: pwd
 
       # Run testing on the code
       - name: Run testing
@@ -154,7 +153,30 @@ jobs:
       - name: "Kubernetes Auth"
         run: |
           kubectl config set-credentials default --token=${{ env.KUBERNETES_TOKEN }}
-          
+          # If cert provided...
+          # kubectl config set-cluster default --server=${KUBERNETES_SERVER} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ env.KUBERNETES_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=${{ env.KUBERNETES_USER }}
+          kubectl config use-context default
+
+      - name: "Kubernetes Deploy"
+        run: |
+          echo "Deploying"
+          # kubectl version
+          #IFS=',' read -r -a DEPLOYMENTS <<< "${PLUGIN_DEPLOYMENT}"
+          #IFS=',' read -r -a CONTAINERS <<< "${PLUGIN_CONTAINER}"
+          #for DEPLOY in ${DEPLOYMENTS[@]}; do
+          #  echo Deploying to $KUBERNETES_SERVER
+          #  for CONTAINER in ${CONTAINERS[@]}; do
+          #    if [[ ${PLUGIN_FORCE} == "true" ]]; then
+          #      kubectl -n ${PLUGIN_NAMESPACE} set image deployment/${DEPLOY} \
+          #        ${CONTAINER}=${PLUGIN_REPO}:${PLUGIN_TAG}FORCE
+          #    fi
+          #    kubectl -n ${PLUGIN_NAMESPACE} set image deployment/${DEPLOY} \
+          #      ${CONTAINER}=${PLUGIN_REPO}:${PLUGIN_TAG} --record
+          #  done
+          #done
 
 #      - name: "Deploy to Kubernetes"
 #        uses: firehed/deploy-to-kubernetes-action@v0.3.0
