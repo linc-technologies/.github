@@ -137,6 +137,34 @@ jobs:
           tags: linced.azurecr.io/linced/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
           file: Dockerfile.drone
 
+  notify_build:
+    name: "Notify Build"
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    steps:
+      - name: Deployment Notification
+        if: always()
+        id: slack
+        uses: slackapi/slack-github-action@v1.19.0
+        with:
+          channel-id: 'G3184HDT6' # CICD
+          # For posting a rich message using Block Kit
+          payload: |
+            {
+              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
   deploy:
     name: "Deploy"
@@ -189,7 +217,7 @@ jobs:
 #
 
   notify_deploy:
-    name: "Notify"
+    name: "Notify Deployment"
     runs-on: ubuntu-latest
     needs: [deploy]
     steps:
