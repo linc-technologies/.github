@@ -57,10 +57,11 @@ jobs:
           known_hosts: ${{ steps.scan.outputs.known_hosts }}
           if_key_exists: replace
 
-      # Issue an HTTPS -> Git override for BitBucket repositories
+      # Issue an HTTPS -> Git override for BitBucket and GitHub repositories
       - name: Git Config
         run: |
           git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"          
+          git config --global url."git@github.com:".insteadOf "https://github.com"          
 
 
       # Install all the dependencies
