@@ -175,17 +175,17 @@ jobs:
       # Showcase the client and server Kubectl versions
       - run: kubectl version
 
-      # TODO: Retrieve tag from prior step and put in here
-      - name: Kubernetes Deploy
-        env:
-          CONTAINER: ${{ github.event.repository.name }}
-          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
-          NAMESPACE: ${{ github.ref_name }}
-          IMAGE: "" # TODO
-        run: |
-          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
-          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true
-
+#      # TODO: Retrieve tag from prior step and put in here
+#      - name: Kubernetes Deploy
+#        env:
+#          CONTAINER: ${{ github.event.repository.name }}
+#          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
+#          NAMESPACE: ${{ github.ref_name }}
+#          IMAGE: "" # TODO
+#        run: |
+#          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+#          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true
+#
 
   notify_deploy:
     name: "Notify"
