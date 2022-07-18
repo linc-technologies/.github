@@ -132,7 +132,6 @@ jobs:
         id: push
         with:
           context: .
-#          load: true
           push: true
           tags: linced.azurecr.io/linced/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
           file: Dockerfile.drone
