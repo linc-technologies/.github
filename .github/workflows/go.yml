@@ -114,12 +114,12 @@ jobs:
     secrets: inherit
     with:
       kubernetes_namespace: github.ref_name
-      kubernetes_deployment:
-      container_tag:
-      container_name:
+      kubernetes_deployment: ""
+      container_tag: ""
+      container_name: ""
 
-  deployment_notification:
-    uses: linc-technologies/.github/.github/workflows/_slack.yml@master
-    secrets: inherit
-    with:
-      type: "deploy"
+#  deployment_notification:
+#    uses: linc-technologies/.github/.github/workflows/_slack.yml@master
+#    secrets: inherit
+#    with:
+#      type: "deploy"
