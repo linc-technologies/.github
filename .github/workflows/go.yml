@@ -123,13 +123,9 @@ jobs:
       - name: Bump build number
         id: num
         env:
-          BUILD: ${{ github.run_id }}
+          BUILD: ${{ github.run_number }}
         run: |
-          echo $BUILD
-          env | grep -i github
-          echo ${{ github.run_id }}
-          echo ${{ github.run_number }}
-          echo "::set-output name=build_num::$(($BUILD+1000))"
+          echo "::set-output name=build_num::$(($BUILD+10000))"
 
       - name: Build and export to Docker
         uses: docker/build-push-action@v3
@@ -138,7 +134,7 @@ jobs:
           context: .
 #          load: true
           push: true
-          tags: linced.azurecr.io/${{ github.event.repository.name }}:${{ steps.num.outputs.nuild_num }}
+          tags: linced.azurecr.io/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
           file: Dockerfile.drone
 
 
