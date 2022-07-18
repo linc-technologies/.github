@@ -102,6 +102,7 @@ jobs:
 
       - name: Build and export to Docker
         uses: docker/build-push-action@v3
+        id: push
         with:
           context: .
           load: true
@@ -109,17 +110,80 @@ jobs:
           tags: ${{ env.GITHUB_RUN_NUMBER }}
           file: Dockerfile.drone
 
-  deploy:
-    uses: linc-technologies/.github/.github/workflows/_kubernetes.yml@master
-    secrets: inherit
-    with:
-      kubernetes_namespace: github.ref_name
-      kubernetes_deployment: ""
-      container_tag: ""
-      container_name: ""
 
-#  deployment_notification:
-#    uses: linc-technologies/.github/.github/workflows/_slack.yml@master
-#    secrets: inherit
-#    with:
-#      type: "deploy"
+  deploy:
+    name: "Deploy"
+    runs-on: ubuntu-latest
+    steps:
+
+      # Install Kubectl
+      - name: Configure Kubectl
+        uses: azure/setup-kubectl@v2.0
+
+
+      # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
+      - name: Kubernetes Auth (Dev AU East)
+        if: ${{ github.ref  != 'refs/heads/production' }}
+        run: |
+          kubectl config set-credentials default --token=${{ env.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          # If cert provided...
+          # kubectl config set-cluster default --server=${{ env.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ env.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=default
+          kubectl config use-context default
+
+      # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
+      - name: Kubernetes Auth (Prod AU East)
+        if: ${{ github.ref == 'refs/heads/production' }}
+        run: |
+          kubectl config set-credentials default --token=${{ env.PRODUCTION_AU_EAST_AKS_TOKEN }}
+          # If cert provided...
+          # kubectl config set-cluster default --server=${{ env.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ env.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=default
+          kubectl config use-context default
+
+      # Showcase the client and server Kubectl versions
+      - run: kubectl version
+
+      # TODO: Retrieve tag from prior step and put in here
+      - name: Kubernetes Deploy
+        env:
+          CONTAINER: ${{ github.event.repository.name }}
+          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: "" # TODO
+        run: |
+          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true
+
+
+  notify_deploy:
+    name: "Deploy"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Notification
+        if: always()
+        id: slack
+        uses: slackapi/slack-github-action@v1.19.0
+        with:
+          channel-id: 'G3184HDT6' # CICD
+          # For posting a rich message using Block Kit
+          payload: |
+            {
+              "text": "GitHub Action deployment result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
