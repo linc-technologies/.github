@@ -86,9 +86,9 @@ jobs:
       - name: Run testing
         run: go test -vet=off -tags internal -v ./...
 
-      - uses: linc-technologies/.github/.github/workflows/_slack.yml@master
-        with:
-          type: "build"
+#      - uses: linc-technologies/.github/.github/workflows/_slack.yml@master
+#        with:
+#          type: "build"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
