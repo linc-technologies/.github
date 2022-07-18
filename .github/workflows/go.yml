@@ -22,31 +22,6 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-
-  configure:
-    name: "Configure"
-    runs-on: ubuntu-latest
-    steps:
-
-      # Perform a key-scan of 'bitbucket.org' and register the output for the SSH key step below
-      - name: BitBucket Keyscan
-        id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa bitbucket.org)"
-
-      # Install an SSH key for BitBucket authentication
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.BITBUCKET_SSH_KEY }}
-          name: id_rsa
-          known_hosts: ${{ steps.scan.outputs.known_hosts }}
-          if_key_exists: replace
-
-      # Issue an HTTPS -> Git override for BitBucket repositories
-      - name: Git Config
-        run: |
-          git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"          
-
   # The "build" workflow
   build:
     # The type of runner that the job will run on
@@ -67,6 +42,27 @@ jobs:
 #          check-latest: true
           cache: true
 #          cache-dependency-path: subdir/go.sum # optional
+
+
+      # Perform a key-scan of 'bitbucket.org' and register the output for the SSH key step below
+      - name: BitBucket Keyscan
+        id: scan
+        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa bitbucket.org)"
+
+      # Install an SSH key for BitBucket authentication
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.BITBUCKET_SSH_KEY }}
+          name: id_rsa
+          known_hosts: ${{ steps.scan.outputs.known_hosts }}
+          if_key_exists: replace
+
+      # Issue an HTTPS -> Git override for BitBucket repositories
+      - name: Git Config
+        run: |
+          git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"          
+
 
       # Install all the dependencies
       - name: Install dependencies
