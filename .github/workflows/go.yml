@@ -82,7 +82,7 @@ jobs:
         env:
           GOPRIVATE: github.com
         run: |
-          cd ./cmd/*/
+          cd ./cmd/${{ github.event.repository.name }}/
           go build -tags development -ldflags="-s -w" -v
 
 # TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
