@@ -59,10 +59,11 @@ jobs:
 #          go vet .
 #          golint .
 
-      # Test code expects to access mongo @ `mongo` per previous build system
-      - name: Mongo Hostname
-        run:
+      # Test code expects to access services @ `mongo` / `mysql` per previous build system
+      - name: Service Hostnames
+        run: |
           sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
+          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
 
       # Start a Mongo DB server for testing
       - name: Start MongoDB
