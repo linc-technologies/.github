@@ -4,22 +4,6 @@ on:
   workflow_dispatch:
   workflow_call:
 
-
-# TODO: Complete these
-# GoLang steps:
-# ✅       cachePrime,
-# ✅       cacheRestore,
-# ✅       ciDep,
-# ✅       ciTest,
-# ✅       slackUnitTests,
-# ✅       compile,
-# ✅       cacheRebuild,
-# ✅       dockerBuild,
-# ✅       slackBuild,
-# ✅       deployKubernetes,
-# ❌       deployHelm,
-# ✅       slackDeploy,
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # The "build" workflow
@@ -27,6 +11,10 @@ jobs:
     name: "Build"
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+
+    outputs:
+      build_num: ${{ steps.tag.outputs.build_num }}
+      registry_tag: ${{ steps.tag.outputs.registry_tag}}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -120,12 +108,14 @@ jobs:
           username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
-      - name: Bump build number
-        id: num
+      - name: Export build tag
+        id: tag
         env:
           BUILD: ${{ github.run_number }}
         run: |
           echo "::set-output name=build_num::$(($BUILD+10000))"
+          echo "::set-output name=registry_tag::linced.azurecr.io/linc-ed/${{ github.event.repository.name }}:$(($BUILD+10000))"
+          
 
       - name: Build and export to Docker
         uses: docker/build-push-action@v3
@@ -133,7 +123,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: linced.azurecr.io/linc-ed/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
+          tags: ${{ steps.tag.outputs.registry_tag }}
           file: Dockerfile.drone
 
   notify_build:
@@ -210,10 +200,10 @@ jobs:
           CONTAINER: ${{ github.event.repository.name }}
           DEPLOYMENT: ${{ github.event.repository.name }}-deployment
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: linced.azurecr.io/linc-ed/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
+          IMAGE: ${{ needs.build.outputs.registry_tag }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
-          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
 
 
   notify_deploy:
