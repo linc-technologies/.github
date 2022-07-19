@@ -133,7 +133,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: linced.azurecr.io/linced/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
+          tags: linced.azurecr.io/linc-ed/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
           file: Dockerfile.drone
 
   notify_build:
@@ -210,7 +210,7 @@ jobs:
           CONTAINER: ${{ github.event.repository.name }}
           DEPLOYMENT: ${{ github.event.repository.name }}-deployment
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: linced.azurecr.io/linced/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
+          IMAGE: linced.azurecr.io/linc-ed/${{ github.event.repository.name }}:${{ steps.num.outputs.build_num }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true
