@@ -64,7 +64,7 @@ jobs:
       # Run build of the application
       - name: Run build
         env:
-          GOPRIVATE: github.com
+          GOPRIVATE: github.com/linc-technologies
           CGO_ENABLED: 0
         run: |
           cd ./cmd/${{ github.event.repository.name }}/
