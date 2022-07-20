@@ -48,13 +48,13 @@ jobs:
           git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"          
           git config --global url."git@github.com:".insteadOf "https://github.com"          
 
-      # Install all the dependencies
-      - name: Install dependencies
-        env:
-          GOPRIVATE: github.com
-        run: |
-          go version
-          go get -u golang.org/x/lint/golint
+#      # Install all the dependencies
+#      - name: Install dependencies
+#        env:
+#          GOPRIVATE: github.com
+#        run: |
+#          go version
+#          go get -u golang.org/x/lint/golint
 
       # Debug repo name
       - name: Debug
