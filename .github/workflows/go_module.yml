@@ -79,9 +79,9 @@ jobs:
     name: "Notify Build"
     runs-on: ubuntu-latest
     needs: [build]
+    if: ${{ always() }}
     steps:
       - name: Deployment Notification
-        if: always()
         id: slack
         uses: slackapi/slack-github-action@v1.19.0
         with:
