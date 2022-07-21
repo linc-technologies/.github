@@ -141,16 +141,45 @@ jobs:
           # For posting a rich message using Block Kit
           payload: |
             {
-              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
-                  }
-                }
-              ]
+                "attachments": [
+                    {
+                        "color": "${{ job.success() && '#00FF00' || '#FF0000' }}",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "*Build Success*"
+                                }
+                            },
+                            {
+                                "type": "divider"
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "Successfully published <repo-name> to the :docker: registry with commit <http://link.com|470bf018> build <http://link.com|#233>! :ok_hand:"
+                                },
+                                "accessory": {
+                                    "type": "image",
+                                    "image_url": "https://www.nme.com/wp-content/uploads/2020/09/Sacha-Baron-Cohen-Borat-696x442.jpg",
+                                    "alt_text": "VERY NICE!"
+                                }
+                            },
+                            {
+                                "type": "divider"
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "*Repository*: <repo>\n*Branch*: <branch>\n*Build Number*: <build_num>\n*Image Tag*: <image_tag>"
+                                }
+                            }
+                        ]
+                    }
+                ]
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
