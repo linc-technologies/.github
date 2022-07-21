@@ -47,7 +47,7 @@ jobs:
       # Install all the dependencies
       - name: Install dependencies
         env:
-          GOPRIVATE: github.com
+          GOPRIVATE: github.com/linc-technologies
         run: |
           go version
           go get -u golang.org/x/lint/golint
