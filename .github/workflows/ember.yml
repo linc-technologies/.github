@@ -1,0 +1,221 @@
+name: "Ember"
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # The "build" workflow
+  build:
+    name: "Build"
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    outputs:
+      build_num: ${{ steps.tag.outputs.build_num }}
+      registry_tag: ${{ steps.tag.outputs.registry_tag}}
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.17' # The Go version to download (if necessary) and use.
+#          cache: true $ TODO: Throwing issues with repeat builds....
+
+      # Issue an HTTPS -> Git override for BitBucket and GitHub repositories
+      - name: Git Config
+        run: |
+          git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"          
+          git config --global url."git@github.com:".insteadOf "https://github.com"          
+
+#      # Install all the dependencies
+#      - name: Install dependencies
+#        env:
+#          GOPRIVATE: github.com
+#        run: |
+#          go version
+#          go get -u golang.org/x/lint/golint
+
+      # Debug repo name
+      - name: Debug
+        run: |
+          env | grep -i GITHUB
+
+      # Run build of the application
+      - name: Run build
+        env:
+          GOPRIVATE: github.com
+          CGO_ENABLED: 0
+        run: |
+          cd ./cmd/${{ github.event.repository.name }}/
+          go build -tags development -ldflags="-s -w" -v
+
+# TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
+#      # Run vet & lint on the code
+#      - name: Run vet & lint
+#        run: |
+#          go vet .
+#          golint .
+
+      # Test code expects to access services @ `mongo` / `mysql` per previous build system
+      - name: Service Hostnames
+        run: |
+          sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
+          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
+
+      # Start a Mongo DB server for testing
+      - name: Start MongoDB
+        if: github.event.repository.name != 'finance'
+        uses: supercharge/mongodb-github-action@1.7.0
+        with:
+          mongodb-version: '4.4'
+
+      # Start a MySQL server for testing, pre-installed on Ubuntu runners
+      - name: Start MySQL
+        if: github.event.repository.name == 'finance'
+        run: sudo systemctl start mysql
+
+      # Run testing on the code
+      - name: Run testing
+        run: go test -vet=off -tags internal -v ./...
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to ACR
+        uses: docker/login-action@v2
+        with:
+          registry: linced.azurecr.io
+          username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+
+      - name: Export build tag
+        id: tag
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          echo "::set-output name=build_num::$(($BUILD+10000))"
+          echo "::set-output name=registry_tag::linced.azurecr.io/linc-ed/${{ github.event.repository.name }}:$(($BUILD+10000))"
+
+      - name: Build and export to Docker
+        uses: docker/build-push-action@v3
+        id: push
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tag.outputs.registry_tag }}
+          file: Dockerfile.drone
+
+  notify_build:
+    name: "Notify Build"
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Deployment Notification
+        if: always()
+        id: slack
+        uses: slackapi/slack-github-action@v1.19.0
+        with:
+          channel-id: 'G3184HDT6' # CICD
+          # For posting a rich message using Block Kit
+          payload: |
+            {
+              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  deploy:
+    name: "Deploy"
+    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+
+      # Install Kubectl
+      - name: Configure Kubectl
+        uses: azure/setup-kubectl@v2.0
+
+      # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
+      - name: Kubernetes Auth (Dev AU East)
+        if: ${{ github.ref  != 'refs/heads/production' }}
+        run: |
+          kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          # If cert provided...
+          # kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=default
+          kubectl config use-context default
+
+      # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
+      - name: Kubernetes Auth (Prod AU East)
+        if: ${{ github.ref == 'refs/heads/production' }}
+        run: |
+          kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
+          # If cert provided...
+          # kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=default
+          kubectl config use-context default
+
+      # Showcase the client and server Kubectl versions
+      - run: kubectl version
+
+      # Deploy specific container revision
+      - name: Kubernetes Deploy
+        env:
+          CONTAINER: ${{ github.event.repository.name }}
+          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: ${{ needs.build.outputs.registry_tag }}
+        run: |
+          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
+
+
+  notify_deploy:
+    name: "Notify Deployment"
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    steps:
+      - name: Deployment Notification
+        if: always()
+        id: slack
+        uses: slackapi/slack-github-action@v1.19.0
+        with:
+          channel-id: 'G3184HDT6' # CICD
+          # For posting a rich message using Block Kit
+          payload: |
+            {
+              "text": "GitHub Action deployment result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "GitHub Action deployment result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
