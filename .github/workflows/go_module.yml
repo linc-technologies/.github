@@ -78,25 +78,48 @@ jobs:
   notify_build:
     name: "Notify Build"
     runs-on: ubuntu-latest
-    needs: [build]
+    if: ${{ always() }}
+    needs: [ build ]
     steps:
-      - name: Deployment Notification
-        if: always()
+      - name: "Build Notification"
         id: slack
         uses: slackapi/slack-github-action@v1.19.0
         with:
           channel-id: 'G3184HDT6' # CICD
-          # For posting a rich message using Block Kit
           payload: |
             {
-              "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
-              "blocks": [
+              "attachments": [
                 {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
-                  }
+                  "color": "${{ needs.build.result == 'success' && '#2eb886' || '#a30200' }}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "*${{ needs.build.result == 'success' && 'Build Success' || 'Build Failure' }}: ${{github.event.repository.name}}*"
+                      }
+                    },
+                    { "type": "divider" },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.event.pusher.name}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}\n\nCommit Message:\n${{github.event.head_commit.message}}"
+                      },
+                      "accessory": {
+                        "type": "image",
+                        "image_url": "${{ needs.build.result == 'success' && 'https://styles.redditmedia.com/t5_39983v/styles/communityIcon_nj9g8x1mm3t51.png?width=256&s=957cfecf8859a834aa7d7094a64b791f6f4ec0a0' || 'https://i.pinimg.com/originals/11/a5/57/11a557b9e90647df60af69d865084ec9.jpg' }}",
+                        "alt_text": "${{ needs.build.result == 'success' && 'Nice!' || 'Oof.' }}"
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{needs.build.outputs.image_tag}}"
+                      }
+                    }
+                  ]
                 }
               ]
             }
