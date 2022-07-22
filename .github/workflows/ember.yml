@@ -1,0 +1,370 @@
+name: "Ember"
+
+on:
+  workflow_call:
+    inputs:
+      DEPLOYMENT:
+        description: "The name of the Kubernetes deployment to deploy to, ex: app-app-deployment"
+        type: string
+        required: true
+      CONTAINER:
+        description: "The name of the container within the Kubernetes deployment to patch, ex: app-app-deployment -c app-app"
+        type: string
+        required: true
+
+env:
+  CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
+
+jobs:
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag_build: ${{ steps.tag.outputs.image_tag_build }}
+      image_tag_branch: ${{ steps.tag.outputs.image_tag_branch }}
+    steps:
+
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Setup Node 10.21"
+        uses: actions/setup-node@v3
+        with:
+          node-version: 10.21
+          cache: 'npm'
+          cache-dependency-path: linced-*/package-lock.json
+
+      - name: "BitBucket Keyscan"
+        id: scan
+        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa bitbucket.org)"
+
+      - name: "BitBucket SSH Key Install"
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.BITBUCKET_SSH_KEY }}
+          name: id_rsa
+          known_hosts: ${{ steps.scan.outputs.known_hosts }}
+          if_key_exists: replace
+
+      - name: "Git Config"
+        run: |
+          git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"
+          git config --global url."git@github.com:".insteadOf "https://github.com"
+
+      - name: "Login to ACR"
+        uses: docker/login-action@v2
+        with:
+          registry: linced.azurecr.io
+          username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+
+      - name: "Install Dependencies (npm ci)"
+        run: |
+          cd linced-*
+          npm ci
+
+      - name: "Set Branch Environment Variables"
+        uses: iamtheyammer/branch-env-vars@v1.1.3
+        with:
+          bevOverwrite: true
+          bevSetEmptyVars: true
+          STRIPE_CLIENT_ID: |
+            testing:${{secrets.DEVELOPMENT_STRIPE_CLIENT_ID}}
+            development:${{secrets.DEVELOPMENT_STRIPE_CLIENT_ID}}
+            staging:${{secrets.STAGING_STRIPE_CLIENT_ID}}
+            production:${{secrets.PRODUCTION_STRIPE_CLIENT_ID}}
+          STRIPE_PUBLISHABLE_ID: |
+            testing:${{secrets.DEVELOPMENT_STRIPE_PUBLISHABLE_ID}}
+            development:${{secrets.DEVELOPMENT_STRIPE_PUBLISHABLE_ID}}
+            staging:${{secrets.STAGING_STRIPE_PUBLISHABLE_ID}}
+            production:${{secrets.PRODUCTION_STRIPE_PUBLISHABLE_ID}}
+          GOOGLE_API_KEY: |
+            testing:${{secrets.DEVELOPMENT_GOOGLE_API_KEY}}
+            development:${{secrets.DEVELOPMENT_GOOGLE_API_KEY}}
+            staging:${{secrets.STAGING_GOOGLE_API_KEY}}
+            production:${{secrets.PRODUCTION_GOOGLE_API_KEY}}
+          GOOGLE_CLIENT_ID: |
+            testing:${{secrets.DEVELOPMENT_GOOGLE_CLIENT_ID}}
+            development:${{secrets.DEVELOPMENT_GOOGLE_CLIENT_ID}}
+            staging:${{secrets.STAGING_GOOGLE_CLIENT_ID}}
+            production:${{secrets.PRODUCTION_GOOGLE_CLIENT_ID}}
+
+      # TODO: Get working tests one day
+      # - run: npm test
+
+      - name: "Ember CLI Install"
+        run: |
+          npm install -g ember-cli@3.16
+          which ember || echo "Could not find 'ember'"
+          which ember
+
+      - name: "Ember Build"
+        env:
+          NEWRELIC_LICENSE_KEY: "DEMO"
+          BUILD: ${{ github.run_number }}
+        run: |
+          cd linced-*
+
+          # Verify the env vars required are present
+          if [ -z "$STRIPE_CLIENT_ID" ]; then echo "STRIPE_CLIENT_ID unset"; else echo "STRIPE_CLIENT_ID set: $(echo $STRIPE_CLIENT_ID | wc --chars) characters"; fi
+          if [ -z "$STRIPE_PUBLISHABLE_ID" ]; then echo "STRIPE_PUBLISHABLE_ID unset"; else echo "STRIPE_PUBLISHABLE_ID set: $(echo $STRIPE_PUBLISHABLE_ID | wc --chars) characters"; fi
+          if [ -z "$GOOGLE_API_KEY" ]; then echo "GOOGLE_API_KEY unset"; else echo "GOOGLE_API_KEY set: $(echo $GOOGLE_API_KEY | wc --chars) characters"; fi
+          if [ -z "$GOOGLE_CLIENT_ID" ]; then echo "GOOGLE_CLIENT_ID unset"; else echo "GOOGLE_CLIENT_ID set: $(echo $GOOGLE_CLIENT_ID | wc --chars) characters"; fi
+
+          # Convert the name to UPPER_SNAKE_CASE
+          export PREFIX=$(echo "${{ github.event.repository.name }}" | tr '-' '_' | tr '[:lower:]' '[:upper:]' )
+          echo "Prefix exported as: '${PREFIX}'"
+
+          # Prefix standardised ENV vars provided above
+          export ${PREFIX}_STRIPE_CLIENT_ID=${STRIPE_CLIENT_ID}
+          export ${PREFIX}_STRIPE_PUBLISHABLE_ID=${STRIPE_PUBLISHABLE_ID}
+          export ${PREFIX}_GOOGLE_API_KEY=${GOOGLE_API_KEY}
+          export ${PREFIX}_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+
+          # Create build version
+          export BUILD_NUM=$(( $BUILD + 10000 ))
+          export LINCED_BUILD_VERSION=$( echo "${{ github.ref_name }}.${BUILD_NUM}" | tr '/' '-')
+          echo "Linced Build Version: ${LINCED_BUILD_VERSION}"
+
+          # Install
+          ember build --environment ${{ github.ref_name }}
+
+          # Post install stuff and things.
+          cd dist/assets
+          mkdir update
+          cp linced-*.* update/ || true
+          cp vendor-*.* update/ || true
+
+
+      - name: "Create Sentry Release"
+        run: echo "Not Implemented"
+        #      - name: "Create Sentry Release"
+        #        uses: getsentry/action-release@v1
+        #        env:
+        #          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        #          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        #          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        #          # SENTRY_URL: https://sentry.io/
+        #        with:
+        #          environment: production
+        #          {
+        #            name: 'cd-sentry-release',
+        #            image: 'linced.azurecr.io/linc-ed/node-builder:latest',
+        #            environment: {
+        #              SENTRY_URL: 'https://sentry.io',
+        #              SENTRY_AUTH_TOKEN: {
+        #                from_secret: 'production_linced_saas_sentry_ci_token',
+        #              },
+        #              SENTRY_ORG: 'linc-ed-hero',
+        #              SENTRY_PROJECT: sentry_project_name,
+        #            },
+        #            commands: [
+        #              std.format('cd ./%s', app),
+        #              "export LINCED_BUILD_VERSION=$(echo \"${DRONE_BRANCH}.${DRONE_BUILD_NUMBER}\" | tr '/' '-')",
+        #              'export LINCED_RELEASE="$${SENTRY_PROJECT}@$${LINCED_BUILD_VERSION}"',
+        #              'find dist/ -type f -name "*.map"',
+        #              // NOTE: Need to escape each backslash to nullify YAML escaping. And within the regex, we need to escape the backslash. So we go from 1 - 4 backslashes in sed really quickly. All for a '.' char....
+        #              "for FILE in $(find dist/ -type f -name \"*.map\"); do export FILE_NO_RAND=$(echo $FILE | sed -e 's/\\\\(.*-\\\\)[a-z0-9]*.map/\\\\1/g'); echo $FILE_NO_RAND; ls ./$FILE_NO_RAND*.js | xargs -I{} echo {} | sed -e 's@\\\\.js@\\\\.map@g' | xargs -I{} cp $FILE {}; done",
+        #              'find dist/ -type f -name "*.map"',
+        #              'sentry-cli releases new $LINCED_RELEASE',
+        #              // NOTE: This line does not throw template errors as the sed commands do not escape a dot
+        #                         "for FILE in $(find dist/ -type f -name \"*.map\"); do export URL_PREFIX=$(echo \"~/${FILE%/*}\" | sed -e 's@dist[/]@@g;s@[/]js@@g'); sentry-cli releases files $LINCED_RELEASE upload-sourcemaps --url-prefix \"$URL_PREFIX\" $FILE; done",
+        #              'sentry-cli releases finalize $LINCED_RELEASE',
+        #              'rm -rf $(find dist/ -type f -name "*.map")',
+        #            ],
+
+
+        # NOTE: We copy the previous assets in to smooth clients' transition from the old build to the new.
+        # Else sometimes a client can use cached HTML from a previous build which tries to fetch the previous assets.
+        # This partially makes up for a lack of CDN...Still not stellar
+      - name: "Add Previous Assets"
+        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
+        continue-on-error: true
+        run: |
+          IMAGE_TAG="$CONTAINER_REGISTRY/${{ github.event.repository.name }}:${{ github.ref_name }}"
+          docker pull $IMAGE_TAG
+          docker run -d --rm --name "previous_assets" --entrypoint "" $IMAGE_TAG sleep infinity
+          docker cp previous_assets:/usr/share/nginx/html/assets/update ./previous_assets
+          docker rm --force previous_assets
+          ls -la ./**/dist/assets || true
+          cp -u ./previous_assets/linced-*.* ./**/dist/assets/ || true
+          cp -u ./previous_assets/vendor-*.* ./**/dist/assets/ || true
+          ls -la ./**/dist/assets || true
+
+      - name: "Set Ownership"
+        run: sudo chown -Rv 101:101 ./linced-*/dist/*
+
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v2
+
+      - name: "Export build tag"
+        id: tag
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          echo "::set-output name=build_num::$(($BUILD+10000))"
+          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))"
+          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"
+
+      - name: "Build and export to Docker"
+        uses: docker/build-push-action@v3
+        if: ${{ !contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name) }}
+        id: push_build_tag
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tag.outputs.image_tag_build }}
+          file: Dockerfile.drone
+
+      - name: "Build and export to Docker (Environmental Tags)"
+        uses: docker/build-push-action@v3
+        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
+        id: push_build_and_env_tag
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.tag.outputs.image_tag_build }}
+            ${{ steps.tag.outputs.image_tag_branch }}
+          file: Dockerfile.drone
+
+  notify_build:
+    name: "Notify Build"
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    needs: [ build ]
+    steps:
+      - name: "Build Notification"
+        id: slack
+        uses: slackapi/slack-github-action@v1.19.0
+        with:
+          channel-id: 'G3184HDT6' # CICD
+          payload: |
+            {
+              "attachments": [
+                {
+                  "color": "${{ needs.build.result == 'success' && '#2eb886' || '#a30200' }}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "*${{ needs.build.result == 'success' && 'Build Success' || 'Build Failure' }}: ${{github.event.repository.name}}*"
+                      }
+                    },
+                    { "type": "divider" },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.event.pusher.name}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}\n\nCommit Message:\n${{github.event.head_commit.message}}"
+                      },
+                      "accessory": {
+                        "type": "image",
+                        "image_url": "${{ needs.build.result == 'success' && 'https://styles.redditmedia.com/t5_39983v/styles/communityIcon_nj9g8x1mm3t51.png?width=256&s=957cfecf8859a834aa7d7094a64b791f6f4ec0a0' || 'https://i.pinimg.com/originals/11/a5/57/11a557b9e90647df60af69d865084ec9.jpg' }}",
+                        "alt_text": "${{ needs.build.result == 'success' && 'Nice!' || 'Oof.' }}"
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{needs.build.outputs.image_tag}}"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  deploy:
+    name: "Deploy"
+    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+
+      - name: "Install Kubectl"
+        uses: azure/setup-kubectl@v2.0
+
+      # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
+      - name: "Kubernetes Auth (Dev AU East)"
+        if: ${{ github.ref  != 'refs/heads/production' }}
+        run: |
+          kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          # If cert provided...
+          # kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=default
+          kubectl config use-context default
+
+      # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
+      - name: "Kubernetes Auth (Prod AU East)"
+        if: ${{ github.ref == 'refs/heads/production' }}
+        run: |
+          kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
+          # If cert provided...
+          # kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+          # If cert not provided
+          kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+          kubectl config set-context default --cluster=default --user=default
+          kubectl config use-context default
+
+      - name: "Kubectl Version"
+        run: kubectl version
+
+      # Deploy specific container revision based on workflow inputs
+      - name: Kubernetes Deploy
+        env:
+          CONTAINER: ${{ inputs.CONTAINER }}
+          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+        run: |
+          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
+
+
+  notify_deploy:
+    name: "Notify Deploy"
+    runs-on: ubuntu-latest
+    if: always() && needs.deploy.result != 'skipped'
+    needs: [ deploy ]
+    steps:
+      - name: "Deployment Notification"
+        id: slack
+        uses: slackapi/slack-github-action@v1.19.0
+        with:
+          channel-id: 'G3184HDT6' # CICD
+          payload: |
+            {
+              "attachments": [
+                {
+                  "color": "${{ needs.build.result == 'success' && '#2eb886' || '#a30200' }}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "*${{ needs.build.result == 'success' && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
+                      }
+                    },
+                    { "type": "divider" },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag}} to *${{github.ref_name}}* ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
+                      },
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
