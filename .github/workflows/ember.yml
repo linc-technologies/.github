@@ -358,20 +358,8 @@ jobs:
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':kubernetes::100::peepo_clap' || ':scream::pepetrashscared:' }}"
+                        "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
                       },
-                      "accessory": {
-                        "type": "image",
-                        "image_url": "${{ needs.build.result == 'success' && 'https://styles.redditmedia.com/t5_39983v/styles/communityIcon_nj9g8x1mm3t51.png?width=256&s=957cfecf8859a834aa7d7094a64b791f6f4ec0a0' || 'https://i.pinimg.com/originals/11/a5/57/11a557b9e90647df60af69d865084ec9.jpg' }}",
-                        "alt_text": "${{ needs.build.result == 'success' && 'Nice!' || 'Oof.' }}"
-                      }
-                    },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: "
-                      }
                     }
                   ]
                 }
