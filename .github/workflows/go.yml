@@ -151,6 +151,13 @@ jobs:
     if: ${{ always() }}
     needs: [ build ]
     steps:
+      # https://github.com/slackapi/slack-github-action/issues/82
+      - name: "Prepare"
+        id: slack-prepare
+        run: |
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          COMMIT_MESSAGE="$(echo "$COMMIT_MESSAGE" | sed -z 's/\n/\\n/g')"
+          echo "::set-output name=commit-message::${COMMIT_MESSAGE}"
       - name: "Build Notification"
         id: slack
         uses: slackapi/slack-github-action@v1.19.0
@@ -174,7 +181,7 @@ jobs:
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}\n\nCommit Message:\n${{github.event.head_commit.message}}"
+                        "text": "Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}\n\nCommit Message:\n${{ steps.slack-prepare.outputs.commit-message }}"
                       },
                       "accessory": {
                         "type": "image",
