@@ -333,7 +333,7 @@ jobs:
     name: "Notify Deploy"
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [ build ]
+    needs: [ deploy ]
     steps:
       - name: "Deployment Notification"
         id: slack
