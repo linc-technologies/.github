@@ -332,7 +332,7 @@ jobs:
   notify_deploy:
     name: "Notify Deploy"
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: always() && needs.deploy.result != 'skipped'
     needs: [ deploy ]
     steps:
       - name: "Deployment Notification"
