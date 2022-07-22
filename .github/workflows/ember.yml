@@ -350,13 +350,13 @@ jobs:
             {
               "attachments": [
                 {
-                  "color": "${{ needs.build.result == 'success' && '#2eb886' || '#a30200' }}",
+                  "color": "${{ needs.deploy.result == 'success' && '#2eb886' || '#a30200' }}",
                   "blocks": [
                     {
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "*${{ needs.build.result == 'success' && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
+                        "text": "*${{ needs.deploy.result == 'success' && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
                       }
                     },
                     { "type": "divider" },
@@ -364,7 +364,7 @@ jobs:
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag_build}} to *${{github.ref_name}}* ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
+                        "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag_build}} to *${{github.ref_name}}* ${{ needs.deploy.result == 'success' && 'successful' || 'failed' }}! ${{ needs.deploy.result == 'success' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
                       }
                     }
                   ]
