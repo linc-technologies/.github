@@ -211,15 +211,15 @@ jobs:
           echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))"
           echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"
 
-      - name: "Build and export to Docker"
-        uses: docker/build-push-action@v3
-        if: ${{ !contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name) }}
-        id: push_build_tag
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.tag.outputs.image_tag_build }}
-          file: Dockerfile.drone
+#      - name: "Build and export to Docker"
+#        uses: docker/build-push-action@v3
+#        if: ${{ !contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name) }}
+#        id: push_build_tag
+#        with:
+#          context: .
+#          push: true
+#          tags: ${{ steps.tag.outputs.image_tag_build }}
+#          file: Dockerfile.drone
 
       - name: "Build and export to Docker (Environmental Tags)"
         uses: docker/build-push-action@v3
