@@ -73,7 +73,7 @@ jobs:
           CGO_ENABLED: 0
         run: |
           cd ./cmd/${{ github.event.repository.name }}/
-          go build -tags development -ldflags="-s -w" -v
+          go build -tags internal -ldflags="-s -w" -v
 
 # TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
 #      # Run vet & lint on the code
