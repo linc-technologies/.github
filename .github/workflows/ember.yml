@@ -13,6 +13,8 @@ on:
         type: string
         required: true
 
+
+
 env:
   CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
 
@@ -55,11 +57,13 @@ jobs:
           password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
       - name: "Install Dependencies (npm ci)"
+        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         run: |
           cd linced-*
           npm ci
 
       - name: "Set Branch Environment Variables"
+        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         uses: iamtheyammer/branch-env-vars@v1.1.3
         with:
           bevOverwrite: true
@@ -133,6 +137,7 @@ jobs:
 
 
       - name: "Create Sentry Release"
+        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         run: echo "Not Implemented"
         #      - name: "Create Sentry Release"
         #        uses: getsentry/action-release@v1
