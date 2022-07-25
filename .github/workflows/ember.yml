@@ -232,6 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ always() }}
     needs: [ build ]
+    continue-on-error: true
     steps:
       # https://github.com/slackapi/slack-github-action/issues/82
       - name: "Prepare"
