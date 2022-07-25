@@ -35,16 +35,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: linced-*/package-lock.json
 
-      - name: "BitBucket Keyscan"
-        id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa bitbucket.org)"
-
       - name: "BitBucket SSH Key Install"
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.BITBUCKET_SSH_KEY }}
           name: id_rsa
-          known_hosts: ${{ steps.scan.outputs.known_hosts }}
           if_key_exists: replace
 
       - name: "Git Config"
