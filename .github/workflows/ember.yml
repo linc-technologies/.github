@@ -231,7 +231,7 @@ jobs:
       - name: "Prepare"
         id: slack-prepare
         run: |
-          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          COMMIT_MESSAGE='${{ github.event.head_commit.message }}'
           COMMIT_MESSAGE="$(echo "$COMMIT_MESSAGE" | sed -z 's/\n/\\n/g')"
           echo "::set-output name=commit-message::${COMMIT_MESSAGE}"
       - name: "Build Notification"
