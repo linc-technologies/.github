@@ -102,7 +102,6 @@ jobs:
       - name: "Ember Build"
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         env:
-          NEWRELIC_LICENSE_KEY: "DEMO"
           BUILD: ${{ github.run_number }}
         run: |
           cd linced-*
