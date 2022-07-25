@@ -1,6 +1,7 @@
 name: "Ember"
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       DEPLOYMENT:
