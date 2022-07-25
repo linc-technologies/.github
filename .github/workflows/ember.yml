@@ -193,12 +193,15 @@ jobs:
           ls -la ./**/dist/assets || true
 
       - name: "Set Ownership"
+        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         run: sudo chown -Rv 101:101 ./linced-*/dist/*
 
       - name: "Set up Docker Buildx"
+        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         uses: docker/setup-buildx-action@v2
 
       - name: "Export build tag"
+        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         id: tag
         env:
           BUILD: ${{ github.run_number }}
