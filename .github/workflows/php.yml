@@ -180,7 +180,7 @@ jobs:
           CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ needs.build.outputs.image_tag_build }}-${{ matrix.container }}
+          IMAGE: ${{ needs.build.outputs.image_tag_build }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
