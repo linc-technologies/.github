@@ -20,9 +20,6 @@ jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
-    outputs:
-      image_tag_build: ${{ steps.tag.outputs.image_tag_build }}
-      image_tag_branch: ${{ steps.tag.outputs.image_tag_branch }}
     strategy:
       fail-fast: true
       matrix:
@@ -147,6 +144,15 @@ jobs:
       - name: "Install Kubectl"
         uses: azure/setup-kubectl@v2.0
 
+      - name: "Export build tag"
+        id: tag
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          echo "::set-output name=build_num::$(($BUILD+10000))"
+          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))"
+          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}"
+
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Kubernetes Auth (Dev AU East)"
         if: ${{ github.ref  != 'refs/heads/production' }}
@@ -180,7 +186,7 @@ jobs:
           CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+          IMAGE: ${{ steps.tag.outputs.image_tag_build }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
