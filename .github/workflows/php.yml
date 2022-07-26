@@ -65,7 +65,7 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.tag.outputs.image_tag_build }}-${{ matrix.container }}
-          file: ${{ matrix.container == "php" && "Dockerfile" || "Dockerfile.nginx" }}
+          file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
       - name: "Build and export to Docker (Environment Based)"
         uses: docker/build-push-action@v3
@@ -77,7 +77,7 @@ jobs:
           tags: |
             ${{ steps.tag.outputs.image_tag_build }}-${{ matrix.container}}
             ${{ steps.tag.outputs.image_tag_branch }}-${{ matrix.container}}
-          file: ${{ matrix.container == "php" && "Dockerfile" || "Dockerfile.nginx" }}
+          file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
   notify_build:
     name: "Notify Build"
