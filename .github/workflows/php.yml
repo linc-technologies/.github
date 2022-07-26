@@ -59,7 +59,17 @@ jobs:
 
       - name: "Build and export to Docker"
         uses: docker/build-push-action@v3
-        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
+        if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
+        id: push_build_tag
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tag.outputs.image_tag_build }}-${{ matrix.container }}
+          file: ${{ matrix.container == "php" && "Dockerfile" || "Dockerfile.nginx" }}
+
+      - name: "Build and export to Docker (Environment Based)"
+        uses: docker/build-push-action@v3
+        if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
         id: push_build_and_env_tag
         with:
           context: .
@@ -68,7 +78,6 @@ jobs:
             ${{ steps.tag.outputs.image_tag_build }}-${{ matrix.container}}
             ${{ steps.tag.outputs.image_tag_branch }}-${{ matrix.container}}
           file: ${{ matrix.container == "php" && "Dockerfile" || "Dockerfile.nginx" }}
-
 
   notify_build:
     name: "Notify Build"
