@@ -29,10 +29,6 @@ jobs:
         container: ["php", "nginx"]
     steps:
 
-      - name: "Debug Matrix"
-        run: | 
-          echo -e "Current matrix container:\n${{matrix.container}}
-
       - name: "Checkout"
         uses: actions/checkout@v2
 
