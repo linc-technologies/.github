@@ -44,13 +44,12 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: "Export build tag"
-        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         id: tag
         env:
           BUILD: ${{ github.run_number }}
         run: |
           echo "::set-output name=build_num::$(($BUILD+10000))"
-          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))"
+          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))"
           echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"
 
       - name: "Build and export to Docker"
@@ -60,7 +59,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.tag.outputs.image_tag_build }}-${{ matrix.container }}
+          tags: ${{ steps.tag.outputs.image_tag_build }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
       - name: "Build and export to Docker (Environment Based)"
@@ -71,8 +70,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.tag.outputs.image_tag_build }}-${{ matrix.container}}
-            ${{ steps.tag.outputs.image_tag_branch }}-${{ matrix.container}}
+            ${{ steps.tag.outputs.image_tag_build }}
+            ${{ steps.tag.outputs.image_tag_branch }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
   notify_build:
