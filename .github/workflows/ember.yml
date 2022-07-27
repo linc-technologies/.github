@@ -90,26 +90,10 @@ jobs:
         run: |
           cd linced-*
 
-          # Verify the env vars required are present
-          if [ -z "$STRIPE_CLIENT_ID" ]; then echo "STRIPE_CLIENT_ID unset"; else echo "STRIPE_CLIENT_ID set: $(echo $STRIPE_CLIENT_ID | wc --chars) characters"; fi
-          if [ -z "$STRIPE_PUBLISHABLE_ID" ]; then echo "STRIPE_PUBLISHABLE_ID unset"; else echo "STRIPE_PUBLISHABLE_ID set: $(echo $STRIPE_PUBLISHABLE_ID | wc --chars) characters"; fi
-          if [ -z "$GOOGLE_API_KEY" ]; then echo "GOOGLE_API_KEY unset"; else echo "GOOGLE_API_KEY set: $(echo $GOOGLE_API_KEY | wc --chars) characters"; fi
-          if [ -z "$GOOGLE_CLIENT_ID" ]; then echo "GOOGLE_CLIENT_ID unset"; else echo "GOOGLE_CLIENT_ID set: $(echo $GOOGLE_CLIENT_ID | wc --chars) characters"; fi
-
-          # Convert the name to UPPER_SNAKE_CASE
-          export PREFIX=$(echo "${{ github.event.repository.name }}" | tr '-' '_' | tr '[:lower:]' '[:upper:]' )
-          echo "Prefix exported as: '${PREFIX}'"
-
-          # Prefix standardised ENV vars provided above
-          export ${PREFIX}_STRIPE_CLIENT_ID=${STRIPE_CLIENT_ID}
-          export ${PREFIX}_STRIPE_PUBLISHABLE_ID=${STRIPE_PUBLISHABLE_ID}
-          export ${PREFIX}_GOOGLE_API_KEY=${GOOGLE_API_KEY}
-          export ${PREFIX}_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-
           # Create build version
           export BUILD_NUM=$(( $BUILD + 10000 ))
-          export LINCED_BUILD_VERSION=$( echo "${{ github.ref_name }}.${BUILD_NUM}" | tr '/' '-')
-          echo "Linced Build Version: ${LINCED_BUILD_VERSION}"
+          export APP_VERSION=$( echo "${{ github.ref_name }}.${BUILD_NUM}" | tr '/' '-')
+          echo "Linced Build Version: ${APP_VERSION}"
 
           # Install
           ember build --environment ${{ github.ref_name }}
