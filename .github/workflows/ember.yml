@@ -68,26 +68,11 @@ jobs:
         with:
           bevOverwrite: true
           bevSetEmptyVars: true
-          STRIPE_CLIENT_ID: |
-            testing:${{secrets.DEVELOPMENT_STRIPE_CLIENT_ID}}
-            development:${{secrets.DEVELOPMENT_STRIPE_CLIENT_ID}}
-            staging:${{secrets.STAGING_STRIPE_CLIENT_ID}}
-            production:${{secrets.PRODUCTION_STRIPE_CLIENT_ID}}
-          STRIPE_PUBLISHABLE_ID: |
-            testing:${{secrets.DEVELOPMENT_STRIPE_PUBLISHABLE_ID}}
-            development:${{secrets.DEVELOPMENT_STRIPE_PUBLISHABLE_ID}}
-            staging:${{secrets.STAGING_STRIPE_PUBLISHABLE_ID}}
-            production:${{secrets.PRODUCTION_STRIPE_PUBLISHABLE_ID}}
-          GOOGLE_API_KEY: |
-            testing:${{secrets.DEVELOPMENT_GOOGLE_API_KEY}}
-            development:${{secrets.DEVELOPMENT_GOOGLE_API_KEY}}
-            staging:${{secrets.STAGING_GOOGLE_API_KEY}}
-            production:${{secrets.PRODUCTION_GOOGLE_API_KEY}}
-          GOOGLE_CLIENT_ID: |
-            testing:${{secrets.DEVELOPMENT_GOOGLE_CLIENT_ID}}
-            development:${{secrets.DEVELOPMENT_GOOGLE_CLIENT_ID}}
-            staging:${{secrets.STAGING_GOOGLE_CLIENT_ID}}
-            production:${{secrets.PRODUCTION_GOOGLE_CLIENT_ID}}
+          APP_FQDN: |
+            testing:${{secrets.DEVELOPMENT_APP_FQDN}}
+            development:${{secrets.DEVELOPMENT_APP_FQDN}}
+            staging:${{secrets.STAGING_APP_FQDN}}
+            production:${{secrets.PRODUCTION_APP_FQDN}}
 
       # TODO: Get working tests one day
       # - run: npm test
