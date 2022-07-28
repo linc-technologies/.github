@@ -208,13 +208,7 @@ jobs:
     needs: [ build ]
     continue-on-error: true
     steps:
-      # https://github.com/slackapi/slack-github-action/issues/82
-      - name: "Prepare"
-        id: slack-prepare
-        run: |
-          COMMIT_MESSAGE='${{ github.event.head_commit.message }}'
-          COMMIT_MESSAGE="$(echo "$COMMIT_MESSAGE" | sed -z 's/\n/\\n/g')"
-          echo "::set-output name=commit-message::${COMMIT_MESSAGE}"
+      # https://stackoverflow.com/questions/72221266/sanitize-github-context-in-github-actions
       - name: "Build Notification"
         id: slack
         uses: slackapi/slack-github-action@v1.19.0
@@ -230,7 +224,7 @@ jobs:
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "*${{ needs.build.result == 'success' && 'Build Success' || 'Build Failure' }}: ${{github.event.repository.name}}*"
+                        "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}"
                       }
                     },
                     { "type": "divider" },
@@ -238,7 +232,7 @@ jobs:
                       "type": "section",
                       "text": {
                         "type": "mrkdwn",
-                        "text": "Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}\n\nCommit Message:\n${{ steps.slack-prepare.outputs.commit-message }}"
+                        "text": ${{ toJSON(github.event.head_commit.message) }}
                       },
                       "accessory": {
                         "type": "image",
