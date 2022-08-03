@@ -104,45 +104,31 @@ jobs:
           cp linced-*.* update/ || true
           cp vendor-*.* update/ || true
 
-
       - name: "Create Sentry Release"
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
-        run: echo "Not Implemented"
-        #      - name: "Create Sentry Release"
-        #        uses: getsentry/action-release@v1
-        #        env:
-        #          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        #          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-        #          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        #          # SENTRY_URL: https://sentry.io/
-        #        with:
-        #          environment: production
-        #          {
-        #            name: 'cd-sentry-release',
-        #            image: 'linced.azurecr.io/linc-ed/node-builder:latest',
-        #            environment: {
-        #              SENTRY_URL: 'https://sentry.io',
-        #              SENTRY_AUTH_TOKEN: {
-        #                from_secret: 'production_linced_saas_sentry_ci_token',
-        #              },
-        #              SENTRY_ORG: 'linc-ed-hero',
-        #              SENTRY_PROJECT: sentry_project_name,
-        #            },
-        #            commands: [
-        #              std.format('cd ./%s', app),
-        #              "export LINCED_BUILD_VERSION=$(echo \"${DRONE_BRANCH}.${DRONE_BUILD_NUMBER}\" | tr '/' '-')",
-        #              'export LINCED_RELEASE="$${SENTRY_PROJECT}@$${LINCED_BUILD_VERSION}"',
-        #              'find dist/ -type f -name "*.map"',
-        #              // NOTE: Need to escape each backslash to nullify YAML escaping. And within the regex, we need to escape the backslash. So we go from 1 - 4 backslashes in sed really quickly. All for a '.' char....
-        #              "for FILE in $(find dist/ -type f -name \"*.map\"); do export FILE_NO_RAND=$(echo $FILE | sed -e 's/\\\\(.*-\\\\)[a-z0-9]*.map/\\\\1/g'); echo $FILE_NO_RAND; ls ./$FILE_NO_RAND*.js | xargs -I{} echo {} | sed -e 's@\\\\.js@\\\\.map@g' | xargs -I{} cp $FILE {}; done",
-        #              'find dist/ -type f -name "*.map"',
-        #              'sentry-cli releases new $LINCED_RELEASE',
-        #              // NOTE: This line does not throw template errors as the sed commands do not escape a dot
-        #                         "for FILE in $(find dist/ -type f -name \"*.map\"); do export URL_PREFIX=$(echo \"~/${FILE%/*}\" | sed -e 's@dist[/]@@g;s@[/]js@@g'); sentry-cli releases files $LINCED_RELEASE upload-sourcemaps --url-prefix \"$URL_PREFIX\" $FILE; done",
-        #              'sentry-cli releases finalize $LINCED_RELEASE',
-        #              'rm -rf $(find dist/ -type f -name "*.map")',
-        #            ],
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ github.event.repository.name }}
+          # SENTRY_URL: https://sentry.io/
+          BUILD: ${{ github.run_number }}
+        run: |
+          cd linced-*
+          
+          # Download sentry cli
+          curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.0.4 bash
 
+          # Setup ENV vars for release
+          export BUILD_NUM=$(( $BUILD + 10000 ))
+          export APP_VERSION="$( echo "${{ github.ref_name }}.${BUILD_NUM}" | tr '/' '-')"
+          export APP_RELEASE="${{github.event.repository.name}}@${APP_VERSION}"
+          
+          sentry-cli releases new $APP_RELEASE
+          sentry-cli releases files $APP_RELEASE upload-sourcemaps ./dist
+          sentry-cli releases finalize $APP_RELEASE
+          
+          # Cleanup
+          rm -rf $(find dist/ -type f -name "*.map")
 
         # NOTE: We copy the previous assets in to smooth clients' transition from the old build to the new.
         # Else sometimes a client can use cached HTML from a previous build which tries to fetch the previous assets.
