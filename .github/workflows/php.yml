@@ -105,7 +105,7 @@ jobs:
                       },
                       "accessory": {
                         "type": "image",
-                        "image_url": "${{ needs.build.result == 'success' && 'https://styles.redditmedia.com/t5_39983v/styles/communityIcon_nj9g8x1mm3t51.png?width=256&s=957cfecf8859a834aa7d7094a64b791f6f4ec0a0' || 'https://i.pinimg.com/originals/11/a5/57/11a557b9e90647df60af69d865084ec9.jpg' }}",
+                        "image_url": "${{ needs.build.result == 'success' && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
                         "alt_text": "${{ needs.build.result == 'success' && 'Nice!' || 'Oof.' }}"
                       }
                     },
