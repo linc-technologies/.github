@@ -33,33 +33,22 @@ jobs:
           go-version: '1.17' # The Go version to download (if necessary) and use.
 #          cache: true $ TODO: Throwing issues with repeat builds....
 
-      # Perform a key-scan of 'bitbucket.org' and register the output for the SSH key step below
-      - name: BitBucket Keyscan
+      - name: "SSH Keyscan"
         id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa bitbucket.org)"
+        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com.org)"
 
-      # Install an SSH key for BitBucket authentication
-      - name: Install SSH Key
+      - name: "SSH Key Install"
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.BITBUCKET_SSH_KEY }}
+          key: ${{ secrets.VCS_SSH_KEY }}
           name: id_rsa
           known_hosts: ${{ steps.scan.outputs.known_hosts }}
           if_key_exists: replace
 
-      # Issue an HTTPS -> Git override for BitBucket and GitHub repositories
+      # Issue an HTTPS -> Git override for VCS repositories
       - name: Git Config
         run: |
-          git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org"          
           git config --global url."git@github.com:".insteadOf "https://github.com"          
-
-#      # Install all the dependencies
-#      - name: Install dependencies
-#        env:
-#          GOPRIVATE: github.com
-#        run: |
-#          go version
-#          go get -u golang.org/x/lint/golint
 
       # Debug repo name
       - name: Debug
