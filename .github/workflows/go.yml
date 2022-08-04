@@ -35,7 +35,7 @@ jobs:
 
       - name: "SSH Keyscan"
         id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com.org)"
+        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com)"
 
       - name: "SSH Key Install"
         uses: shimataro/ssh-key-action@v2
