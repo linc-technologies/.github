@@ -41,14 +41,6 @@ jobs:
         run: |
           git config --global url."git@github.com:".insteadOf "https://github.com"          
 
-      # Install all the dependencies
-      - name: Install dependencies
-        env:
-          GOPRIVATE: github.com/linc-technologies
-        run: |
-          go version
-          go get -u golang.org/x/lint/golint
-
 # TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
 #      # Run vet & lint on the code
 #      - name: Run vet & lint
