@@ -181,7 +181,8 @@ jobs:
 
   deploy:
     name: "Deploy"
-    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+# TODO: Re-introduce this filter before PR
+#    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
     runs-on: ubuntu-latest
     needs: [build]
     steps:
@@ -220,7 +221,8 @@ jobs:
 
       # Deploy specific container revision
       - name: Helm Deploy
-        if: ${{ github.event.repository.name == 'people' && github.ref_name == 'development' }}
+# TODO: Re-introduce this filter before PR
+#        if: ${{ github.event.repository.name == 'people' && github.ref_name == 'development' }}
         env:
           DEPLOYMENT: ${{ github.event.repository.name }}
           NAMESPACE: ${{ github.ref_name }}
