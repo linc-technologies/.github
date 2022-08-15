@@ -186,8 +186,7 @@ jobs:
     needs: [build]
     steps:
 
-      # Install Kubectl
-      - name: Configure Kubectl
+      - name: "Configure Kubectl"
         uses: azure/setup-kubectl@v2.0
         with:
           version: 'v1.22.6'
@@ -220,15 +219,19 @@ jobs:
       - run: kubectl version
 
       # Deploy specific container revision
-      - name: Kubernetes Deploy
+      - name: Helm Deploy
+        if: ${{ github.event.repository.name == 'people' && github.ref_name == 'development' }}
         env:
-          CONTAINER: ${{ github.event.repository.name }}
-          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
+          DEPLOYMENT: ${{ github.event.repository.name }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+          TAG: ${{ needs.build.outputs.build_num }}
         run: |
-          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
-          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
+          cd ./deployments/
+          helm registry login linced.azurecr.io --username ${{ secrets.AZURE_ACR_LINCED_USERNAME }} --password ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+          helm pull oci://linced.azurecr.io/helm/service-chart 
+          helm upgrade -i $DEPLOYMENT ./service-chart-*' \
+            --namespace $NAMESPACE \
+            --set image.tag=$TAG
 
 
   notify_deploy:
