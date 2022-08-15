@@ -186,6 +186,9 @@ jobs:
     needs: [build]
     steps:
 
+      # In order to retrieve deployment config
+      - uses: actions/checkout@v2
+
       - name: "Configure Kubectl"
         uses: azure/setup-kubectl@v2.0
         with:
