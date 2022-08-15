@@ -235,7 +235,7 @@ jobs:
           cd ./deployments/
           helm registry login linced.azurecr.io --username ${{ secrets.AZURE_ACR_LINCED_USERNAME }} --password ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
           helm pull oci://linced.azurecr.io/helm/service-chart 
-          helm upgrade -i $DEPLOYMENT ./service-chart-*' \
+          helm upgrade -i $DEPLOYMENT ./service-chart-* \
             --namespace $NAMESPACE \
             --set image.tag=$TAG
 
