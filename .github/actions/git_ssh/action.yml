@@ -3,7 +3,7 @@ description: "Configure Git access to private repositories via SSH key."
 inputs:
   key:
     description: "SSH key to use for Git HTTPS operations"
-    required: "true"
+    required: true
 runs:
   using: "composite"
   steps:
