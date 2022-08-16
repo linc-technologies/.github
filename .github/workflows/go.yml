@@ -26,34 +26,24 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
+      - name: "Git HTTPS"
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        uses: linc-technologies/.github/.github/actions/git_http@feature/dependabot
+        with:
+          pat: ${{ secrets.CICD_TOKEN }}
+
+      - name: "Git SSH"
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: linc-technologies/.github/.github/actions/git_ssh@feature/dependabot
+        with:
+          key: ${{ secrets.VCS_SSH_KEY }}
+
       # Setup Go
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
           go-version: '1.17' # The Go version to download (if necessary) and use.
 #          cache: true $ TODO: Throwing issues with repeat builds....
-
-      - name: "SSH Keyscan"
-        id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com)"
-
-      - name: "SSH Key Install"
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.VCS_SSH_KEY }}
-          name: id_rsa
-          known_hosts: ${{ steps.scan.outputs.known_hosts }}
-          if_key_exists: replace
-
-      # Issue an HTTPS -> Git override for VCS repositories
-      - name: Git Config
-        run: |
-          git config --global url."git@github.com:".insteadOf "https://github.com"          
-
-      # Debug repo name
-      - name: Debug
-        run: |
-          env | grep -i GITHUB
 
       # Run build of the application
       - name: Run build
@@ -110,7 +100,7 @@ jobs:
         run: |
           echo "::set-output name=build_num::$(($BUILD+10000))"
           echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))"
-          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"          
+          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"
 
       - name: "Build and export to Docker"
         uses: docker/build-push-action@v3

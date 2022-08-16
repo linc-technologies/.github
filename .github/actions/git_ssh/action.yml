@@ -1,0 +1,25 @@
+name: "Git SSH Setup"
+description: "Configure Git access to private repositories via SSH key."
+inputs:
+  key:
+    description: "SSH key to use for Git HTTPS operations"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: "SSH Keyscan"
+      id: scan
+      run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com)"
+      shell: bash
+
+    - name: "SSH Key Install"
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ inputs.key }}
+        name: id_rsa
+        known_hosts: ${{ steps.scan.outputs.known_hosts }}
+        if_key_exists: replace
+
+    - name: "Git Config (HTTPS -> Git)"
+      run: git config --global url."git@github.com:".insteadOf "https://github.com"
+      shell: bash

@@ -1,0 +1,14 @@
+name: "Git HTTPS Setup"
+description: "Configure Git access to private repositories via HTTPS PAT."
+inputs:
+  pat:
+    description: "Personal access token to use for Git HTTPS operations"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: "Git Config"
+      run: |
+        git config --global url."https://github.com/".insteadOf "git@github.com:" 
+        sudo echo "machine github.com login ${{ github.actor }} password ${{ inputs.pat }}" > ~/.netrc
+      shell: bash
