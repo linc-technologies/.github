@@ -37,19 +37,13 @@ jobs:
         uses: todo
         with:
           key: ${{ secrets.VCS_SSH_KEY }}
-          name: id_rsa
-          known_hosts: ${{ steps.scan.outputs.known_hosts }}
-          if_key_exists: replace
 
-      # Issue an HTTPS -> Git override for VCS repositories
-      - name: Git Config
-        run: |
-          git config --global url."git@github.com:".insteadOf "https://github.com"          
-
-      # Debug repo name
-      - name: Debug
-        run: |
-          env | grep -i GITHUB
+      # Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.17' # The Go version to download (if necessary) and use.
+#          cache: true $ TODO: Throwing issues with repeat builds....
 
       # Run build of the application
       - name: Run build
@@ -60,9 +54,15 @@ jobs:
           cd ./cmd/${{ github.event.repository.name }}/
           go build -tags internal -ldflags="-s -w" -v
 
-# TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
-#      # Run vet & lint on the code
-#      - name: Run vet & lint
+## TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
+##      # Run vet & lint on the code
+##      - name: Run vet & lint
+##        run: |
+##          go vet .
+##          golint .
+#
+#      # Test code expects to access services @ `mongo` / `mysql` per previous build system
+#      - name: Service Hostnames
 #        run: |
 #          sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
 #          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
