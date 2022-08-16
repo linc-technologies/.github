@@ -26,19 +26,15 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Setup Go
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: "Git HTTPS"
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        uses: todo
         with:
-          go-version: '1.17' # The Go version to download (if necessary) and use.
-#          cache: true $ TODO: Throwing issues with repeat builds....
+          pat: ${{ secrets.CICD_TOKEN }}
 
-      - name: "SSH Keyscan"
-        id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com)"
-
-      - name: "SSH Key Install"
-        uses: shimataro/ssh-key-action@v2
+      - name: "Git SSH"
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: todo
         with:
           key: ${{ secrets.VCS_SSH_KEY }}
           name: id_rsa
@@ -68,213 +64,207 @@ jobs:
 #      # Run vet & lint on the code
 #      - name: Run vet & lint
 #        run: |
-#          go vet .
-#          golint .
-
-      # Test code expects to access services @ `mongo` / `mysql` per previous build system
-      - name: Service Hostnames
-        run: |
-          sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
-          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
-
-      # Start a Mongo DB server for testing
-      - name: Start MongoDB
-        if: github.event.repository.name != 'finance'
-        uses: supercharge/mongodb-github-action@1.7.0
-        with:
-          mongodb-version: '4.4'
-
-      # Start a MySQL server for testing, pre-installed on Ubuntu runners
-      - name: Start MySQL
-        if: github.event.repository.name == 'finance'
-        run: sudo systemctl start mysql
-
-      # Run testing on the code
-      - name: Run testing
-        run: go test -vet=off -tags internal -v ./...
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to ACR
-        uses: docker/login-action@v2
-        with:
-          registry: linced.azurecr.io
-          username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
-          password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
-
-      - name: "Export build tag"
-        id: tag
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "::set-output name=build_num::$(($BUILD+10000))"
-          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))"
-          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"          
-
-      - name: "Build and export to Docker"
-        uses: docker/build-push-action@v3
-        if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
-        id: push_build_tag
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.tag.outputs.image_tag_build }}
-          file: Dockerfile.drone
-
-      - name: "Build and export to Docker (Environment Based)"
-        uses: docker/build-push-action@v3
-        if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
-        id: push_build_and_env_tag
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ steps.tag.outputs.image_tag_build }}
-            ${{ steps.tag.outputs.image_tag_branch }}
-          file: Dockerfile.drone
-
-  notify_build:
-    name: "Notify Build"
-    runs-on: ubuntu-latest
-    if: ${{ always() }}
-    needs: [ build ]
-    steps:
-      # https://stackoverflow.com/questions/72221266/sanitize-github-context-in-github-actions
-      - name: "Build Notification"
-        id: slack
-        uses: slackapi/slack-github-action@v1.19.0
-        with:
-          channel-id: 'G3184HDT6' # CICD
-          payload: |
-            {
-              "attachments": [
-                {
-                  "color": "${{ needs.build.result == 'success' && '#2eb886' || '#a30200' }}",
-                  "blocks": [
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}"
-                      }
-                    },
-                    { "type": "divider" },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": ${{ toJSON(github.event.head_commit.message) }}
-                      },
-                      "accessory": {
-                        "type": "image",
-                        "image_url": "${{ needs.build.result == 'success' && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
-                        "alt_text": "${{ needs.build.result == 'success' && 'Nice!' || 'Oof.' }}"
-                      }
-                    },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{needs.build.outputs.image_tag_build}}"
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-
-  deploy:
-    name: "Deploy"
-    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-
-      # Install Kubectl
-      - name: Configure Kubectl
-        uses: azure/setup-kubectl@v2.0
-        with:
-          version: 'v1.22.6'
-
-      # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
-      - name: Kubernetes Auth (Dev AU East)
-        if: ${{ github.ref  != 'refs/heads/production' }}
-        run: |
-          kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
-          # If cert provided...
-          # kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
-          # If cert not provided
-          kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-context default --cluster=default --user=default
-          kubectl config use-context default
-
-      # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
-      - name: Kubernetes Auth (Prod AU East)
-        if: ${{ github.ref == 'refs/heads/production' }}
-        run: |
-          kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
-          # If cert provided...
-          # kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
-          # If cert not provided
-          kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-context default --cluster=default --user=default
-          kubectl config use-context default
-
-      # Showcase the client and server Kubectl versions
-      - run: kubectl version
-
-      # Deploy specific container revision
-      - name: Kubernetes Deploy
-        env:
-          CONTAINER: ${{ github.event.repository.name }}
-          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
-          NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ needs.build.outputs.image_tag_build }}
-        run: |
-          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
-          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
-
-
-  notify_deploy:
-    name: "Notify Deploy"
-    runs-on: ubuntu-latest
-    if: always() && needs.deploy.result != 'skipped'
-    needs: [ deploy ]
-    steps:
-      - name: "Deployment Notification"
-        id: slack
-        uses: slackapi/slack-github-action@v1.19.0
-        with:
-          channel-id: 'G3184HDT6' # CICD
-          payload: |
-            {
-              "attachments": [
-                {
-                  "color": "${{ needs.deploy.result == 'success' && '#2eb886' || '#a30200' }}",
-                  "blocks": [
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "*${{ needs.deploy.result == 'success' && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
-                      }
-                    },
-                    { "type": "divider" },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag_build}} to *${{github.ref_name}}* ${{ needs.deploy.result == 'success' && 'successful' || 'failed' }}! ${{ needs.deploy.result == 'success' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+#          sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
+#          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
+#
+#      # Start a Mongo DB server for testing
+#      - name: Start MongoDB
+#        if: github.event.repository.name != 'finance'
+#        uses: supercharge/mongodb-github-action@1.7.0
+#        with:
+#          mongodb-version: '4.4'
+#
+#      # Start a MySQL server for testing, pre-installed on Ubuntu runners
+#      - name: Start MySQL
+#        if: github.event.repository.name == 'finance'
+#        run: sudo systemctl start mysql
+#
+#      # Run testing on the code
+#      - name: Run testing
+#        run: go test -vet=off -tags internal -v ./...
+#
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v2
+#
+#      - name: Login to ACR
+#        uses: docker/login-action@v2
+#        with:
+#          registry: linced.azurecr.io
+#          username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+#          password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+#
+#      - name: "Export build tag"
+#        id: tag
+#        env:
+#          BUILD: ${{ github.run_number }}
+#        run: |
+#          echo "::set-output name=build_num::$(($BUILD+10000))"
+#          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))"
+#          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"
+#
+#      - name: "Build and export to Docker"
+#        uses: docker/build-push-action@v3
+#        if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
+#        id: push_build_tag
+#        with:
+#          context: .
+#          push: true
+#          tags: ${{ steps.tag.outputs.image_tag_build }}
+#          file: Dockerfile.drone
+#
+#      - name: "Build and export to Docker (Environment Based)"
+#        uses: docker/build-push-action@v3
+#        if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+#        id: push_build_and_env_tag
+#        with:
+#          context: .
+#          push: true
+#          tags: |
+#            ${{ steps.tag.outputs.image_tag_build }}
+#            ${{ steps.tag.outputs.image_tag_branch }}
+#          file: Dockerfile.drone
+#
+#  notify_build:
+#    name: "Notify Build"
+#    runs-on: ubuntu-latest
+#    if: ${{ always() }}
+#    needs: [ build ]
+#    steps:
+#      # https://stackoverflow.com/questions/72221266/sanitize-github-context-in-github-actions
+#      - name: "Build Notification"
+#        id: slack
+#        uses: slackapi/slack-github-action@v1.19.0
+#        with:
+#          channel-id: 'G3184HDT6' # CICD
+#          payload: |
+#            {
+#              "attachments": [
+#                {
+#                  "color": "${{ needs.build.result == 'success' && '#2eb886' || '#a30200' }}",
+#                  "blocks": [
+#                    {
+#                      "type": "section",
+#                      "text": {
+#                        "type": "mrkdwn",
+#                        "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}"
+#                      }
+#                    },
+#                    { "type": "divider" },
+#                    {
+#                      "type": "section",
+#                      "text": {
+#                        "type": "mrkdwn",
+#                        "text": ${{ toJSON(github.event.head_commit.message) }}
+#                      },
+#                      "accessory": {
+#                        "type": "image",
+#                        "image_url": "${{ needs.build.result == 'success' && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
+#                        "alt_text": "${{ needs.build.result == 'success' && 'Nice!' || 'Oof.' }}"
+#                      }
+#                    },
+#                    {
+#                      "type": "section",
+#                      "text": {
+#                        "type": "mrkdwn",
+#                        "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{needs.build.outputs.image_tag_build}}"
+#                      }
+#                    }
+#                  ]
+#                }
+#              ]
+#            }
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+#          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+#
+#  deploy:
+#    name: "Deploy"
+#    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+#    runs-on: ubuntu-latest
+#    needs: [build]
+#    steps:
+#
+#      # Install Kubectl
+#      - name: Configure Kubectl
+#        uses: azure/setup-kubectl@v2.0
+#        with:
+#          version: 'v1.22.6'
+#
+#      # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
+#      - name: Kubernetes Auth (Dev AU East)
+#        if: ${{ github.ref  != 'refs/heads/production' }}
+#        run: |
+#          kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+#          # If cert provided...
+#          # kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+#          # If cert not provided
+#          kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+#          kubectl config set-context default --cluster=default --user=default
+#          kubectl config use-context default
+#
+#      # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
+#      - name: Kubernetes Auth (Prod AU East)
+#        if: ${{ github.ref == 'refs/heads/production' }}
+#        run: |
+#          kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
+#          # If cert provided...
+#          # kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
+#          # If cert not provided
+#          kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
+#          kubectl config set-context default --cluster=default --user=default
+#          kubectl config use-context default
+#
+#      # Showcase the client and server Kubectl versions
+#      - run: kubectl version
+#
+#      # Deploy specific container revision
+#      - name: Kubernetes Deploy
+#        env:
+#          CONTAINER: ${{ github.event.repository.name }}
+#          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
+#          NAMESPACE: ${{ github.ref_name }}
+#          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+#        run: |
+#          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+#          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
+#
+#
+#  notify_deploy:
+#    name: "Notify Deploy"
+#    runs-on: ubuntu-latest
+#    if: always() && needs.deploy.result != 'skipped'
+#    needs: [ deploy ]
+#    steps:
+#      - name: "Deployment Notification"
+#        id: slack
+#        uses: slackapi/slack-github-action@v1.19.0
+#        with:
+#          channel-id: 'G3184HDT6' # CICD
+#          payload: |
+#            {
+#              "attachments": [
+#                {
+#                  "color": "${{ needs.deploy.result == 'success' && '#2eb886' || '#a30200' }}",
+#                  "blocks": [
+#                    {
+#                      "type": "section",
+#                      "text": {
+#                        "type": "mrkdwn",
+#                        "text": "*${{ needs.deploy.result == 'success' && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
+#                      }
+#                    },
+#                    { "type": "divider" },
+#                    {
+#                      "type": "section",
+#                      "text": {
+#                        "type": "mrkdwn",
+#                        "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag_build}} to *${{github.ref_name}}* ${{ needs.deploy.result == 'success' && 'successful' || 'failed' }}! ${{ needs.deploy.result == 'success' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
+#                      }
+#                    }
+#                  ]
+#                }
+#              ]
+#            }
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+#          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
