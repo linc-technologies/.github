@@ -28,13 +28,13 @@ jobs:
 
       - name: "Git HTTPS"
         if: ${{ github.actor == 'dependabot[bot]' }}
-        uses: linc-technologies/.github/.github/actions/git_http@feature/dependabot
+        uses: linc-technologies/.github/.github/actions/git_http@master
         with:
           pat: ${{ secrets.CICD_TOKEN }}
 
       - name: "Git SSH"
         if: ${{ github.actor != 'dependabot[bot]' }}
-        uses: linc-technologies/.github/.github/actions/git_ssh@feature/dependabot
+        uses: linc-technologies/.github/.github/actions/git_ssh@master
         with:
           key: ${{ secrets.VCS_SSH_KEY }}
 
