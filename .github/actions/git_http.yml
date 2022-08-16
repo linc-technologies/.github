@@ -3,6 +3,7 @@ description: "Configure Git access to private repositories via HTTPS PAT."
 inputs:
   pat:
     description: "Personal access token to use for Git HTTPS operations"
+    required: "true"
 runs:
   using: "composite"
   steps:
