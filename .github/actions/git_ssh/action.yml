@@ -15,7 +15,7 @@ runs:
     - name: "SSH Key Install"
       uses: shimataro/ssh-key-action@v2
       with:
-        key: ${{ inputs.git_key }}
+        key: ${{ inputs.key }}
         name: id_rsa
         known_hosts: ${{ steps.scan.outputs.known_hosts }}
         if_key_exists: replace
