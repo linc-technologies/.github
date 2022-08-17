@@ -110,7 +110,7 @@ jobs:
         id: push_build_tag
         with:
           context: .
-          push: true
+          push: false
           tags: ${{ steps.tag.outputs.image_tag_build }}
           file: Dockerfile.drone
 
