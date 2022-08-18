@@ -233,10 +233,12 @@ jobs:
           server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
           token: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
           cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
+          chart: "service"
           release: ${{ github.event.repository.name }}
 # TODO: Swap back to git ref for env instead of hard coded development
 #          namespace: ${{ github.ref_name }}
           namespace: "development"
+          tag: ${{ needs.build.outputs.build_num }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
@@ -248,8 +250,10 @@ jobs:
 #          server: ${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }}
 #          token: ${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
 #          cert: ${{ secrets.PRODUCTION_AU_EAST_AKS_CERT }}
+#          chart: "service"
 #          release: ${{ github.event.repository.name }}
 #          namespace: ${{ github.ref_name }}
+#          tag: ${{ needs.build.outputs.build_num }}
 #          oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
 #          oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
