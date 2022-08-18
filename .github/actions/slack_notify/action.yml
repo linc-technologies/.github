@@ -7,6 +7,9 @@ inputs:
   webhook_url:
     description: "The Slack webhook for your workspace."
     required: true
+  success:
+    description: "The status of the build pipeline. Expects a boolean as returned by inputs.success"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -19,13 +22,13 @@ runs:
           {
             "attachments": [
               {
-                "color": "${{ success() && '#2eb886' || '#a30200' }}",
+                "color": "${{ inputs.success && '#2eb886' || '#a30200' }}",
                 "blocks": [
                   {
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ success() && 'successful' || 'failed' }}! ${{ success() && ':ok_hand:' || ':scream::cry:' }}"
+                      "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ inputs.success && 'successful' || 'failed' }}! ${{ inputs.success && ':ok_hand:' || ':scream::cry:' }}"
                     }
                   },
                   { "type": "divider" },
@@ -37,8 +40,8 @@ runs:
                     },
                     "accessory": {
                       "type": "image",
-                      "image_url": "${{ success() && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
-                      "alt_text": "${{ success() && 'Nice!' || 'Oof.' }}"
+                      "image_url": "${{ inputs.success && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
+                      "alt_text": "${{ inputs.success && 'Nice!' || 'Oof.' }}"
                     }
                   },
                   {
@@ -65,13 +68,13 @@ runs:
           {
             "attachments": [
               {
-                "color": "${{ success() && '#2eb886' || '#a30200' }}",
+                "color": "${{ inputs.success && '#2eb886' || '#a30200' }}",
                 "blocks": [
                   {
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "*${{ success() && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
+                      "text": "*${{ inputs.success && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
                     }
                   },
                   { "type": "divider" },
@@ -79,7 +82,7 @@ runs:
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag_build}} to *${{github.ref_name}}* ${{ success() && 'successful' || 'failed' }}! ${{ success() && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
+                      "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag_build}} to *${{github.ref_name}}* ${{ inputs.success && 'successful' || 'failed' }}! ${{ inputs.success && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
                     }
                   }
                 ]
@@ -87,6 +90,6 @@ runs:
             ]
           }
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        SLACK_WEBHOOK_URL: ${{ inputs.webhook_url }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 

@@ -103,6 +103,7 @@ jobs:
         uses: linc-technologies/.github/.github/actions/slack_notify@feature/composite
         with:
           event: build
+          success: success()
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   deploy:
@@ -161,4 +162,6 @@ jobs:
         uses: linc-technologies/.github/.github/actions/slack_notify@feature/composite
         with:
           event: deploy
+          success: success()
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
