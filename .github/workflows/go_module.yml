@@ -4,115 +4,37 @@ on:
   workflow_dispatch:
   workflow_call:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # The "build" workflow
   build:
     name: "Build"
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
 
-      # Setup Go
-      - name: Setup Go
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Setup Go"
         uses: actions/setup-go@v3
         with:
           go-version: '1.17' # The Go version to download (if necessary) and use.
           cache: true
 
-      - name: "SSH Keyscan"
-        id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com)"
-
-      - name: "SSH Key Install"
-        uses: shimataro/ssh-key-action@v2
+      - name: "Git HTTPS"
+        uses: linc-technologies/.github/.github/actions/git_http@master
         with:
-          key: ${{ secrets.VCS_SSH_KEY }}
-          name: id_rsa
-          known_hosts: ${{ steps.scan.outputs.known_hosts }}
-          if_key_exists: replace
+          pat: ${{ secrets.CICD_TOKEN }}
 
-      # Issue an HTTPS -> Git override for VCS repositories
-      - name: Git Config
-        run: |
-          git config --global url."git@github.com:".insteadOf "https://github.com"          
+      - name: "Setup Mongo"
+        if: github.event.repository.name != 'finance'
+        uses: linc-technologies/.github/.github/actions/service_mongo@master
 
-# TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
-#      # Run vet & lint on the code
-#      - name: Run vet & lint
-#        run: |
-#          go vet .
-#          golint .
-
-      # Test code expects to access services @ `mongo` / `mysql` per previous build system
-      - name: Service Hostnames
-        run: |
-          sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
-          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
-
-      # Start a Mongo DB server for testing
-      - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@1.7.0
-        with:
-          mongodb-version: '4.4'
-
-      # Run testing on the code
-      - name: Run testing
+      - name: "Go Test"
         run: go test -vet=off -tags internal -v ./...
 
-  notify_build:
-    name: "Notify Build"
-    runs-on: ubuntu-latest
-    if: ${{ always() }}
-    needs: [ build ]
-    steps:
-      # https://stackoverflow.com/questions/72221266/sanitize-github-context-in-github-actions
-      - name: "Build Notification"
-        id: slack
-        uses: slackapi/slack-github-action@v1.19.0
+      - name: "Slack Notify"
+        if: success() || failure()
+        uses: linc-technologies/.github/.github/actions/slack_notify@master
         with:
-          channel-id: 'G3184HDT6' # CICD
-          payload: |
-            {
-              "attachments": [
-                {
-                  "color": "${{ needs.build.result == 'success' && '#2eb886' || '#a30200' }}",
-                  "blocks": [
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}"
-                      }
-                    },
-                    { "type": "divider" },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": ${{ toJSON(github.event.head_commit.message) }}
-                      },
-                      "accessory": {
-                        "type": "image",
-                        "image_url": "${{ needs.build.result == 'success' && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
-                        "alt_text": "${{ needs.build.result == 'success' && 'Nice!' || 'Oof.' }}"
-                      }
-                    },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{needs.build.outputs.image_tag_build}}"
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+          event: build
+          success: success()
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

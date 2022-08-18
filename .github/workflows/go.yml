@@ -7,46 +7,31 @@ on:
 env:
   CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # The "build" workflow
   build:
     name: "Build"
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
     outputs:
       build_num: ${{ steps.tag.outputs.build_num }}
       image_tag_build: ${{ steps.tag.outputs.image_tag_build }}
       image_tag_branch: ${{ steps.tag.outputs.image_tag_branch }}
-
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+
+      - name: "Checkout"
+        uses: actions/checkout@v2
 
       - name: "Git HTTPS"
-        if: ${{ github.actor == 'dependabot[bot]' }}
         uses: linc-technologies/.github/.github/actions/git_http@master
         with:
           pat: ${{ secrets.CICD_TOKEN }}
 
-      - name: "Git SSH"
-        if: ${{ github.actor != 'dependabot[bot]' }}
-        uses: linc-technologies/.github/.github/actions/git_ssh@master
-        with:
-          key: ${{ secrets.VCS_SSH_KEY }}
-
-      # Setup Go
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
           go-version: '1.17' # The Go version to download (if necessary) and use.
 #          cache: true $ TODO: Throwing issues with repeat builds....
 
-      # Run build of the application
-      - name: Run build
+      - name: "Build"
         env:
           GOPRIVATE: github.com/linc-technologies
           CGO_ENABLED: 0
@@ -54,40 +39,22 @@ jobs:
           cd ./cmd/${{ github.event.repository.name }}/
           go build -tags internal -ldflags="-s -w" -v
 
-# TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
-#      # Run vet & lint on the code
-#      - name: Run vet & lint
-#        run: |
-#          go vet .
-#          golint .
-
-      # Test code expects to access services @ `mongo` / `mysql` per previous build system
-      - name: Service Hostnames
-        run: |
-          sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
-          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
-
-      # Start a Mongo DB server for testing
-      - name: Start MongoDB
+      - name: "Setup Mongo"
         if: github.event.repository.name != 'finance'
-        uses: supercharge/mongodb-github-action@1.7.0
-        with:
-          mongodb-version: '4.4'
+        uses: linc-technologies/.github/.github/actions/service_mongo@master
 
-      # Start a MySQL server for testing, pre-installed on Ubuntu runners
-      - name: Start MySQL
+      - name: "Setup MySQL"
         if: github.event.repository.name == 'finance'
-        run: sudo systemctl start mysql
+        uses: linc-technologies/.github/.github/actions/service_mysql@master
 
-      # Run testing on the code
-      - name: Run testing
+      - name: "Test"
         run: go test -vet=off -tags internal -v ./...
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
       # TODO: Create a new workflow for dependabot with only composite actions to limit steps like these
-      - name: Login to ACR
+      - name: "Login to ACR"
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: docker/login-action@v2
         with:
@@ -126,62 +93,17 @@ jobs:
             ${{ steps.tag.outputs.image_tag_branch }}
           file: Dockerfile.drone
 
-  notify_build:
-    name: "Notify Build"
-    runs-on: ubuntu-latest
-    if: ${{ always() }}
-    needs: [ build ]
-    steps:
-      # https://stackoverflow.com/questions/72221266/sanitize-github-context-in-github-actions
-      - name: "Build Notification"
-        id: slack
-        uses: slackapi/slack-github-action@v1.19.0
+      - name: "Slack Notify"
+        if: success() || failure()
+        uses: linc-technologies/.github/.github/actions/slack_notify@master
         with:
-          channel-id: 'G3184HDT6' # CICD
-          payload: |
-            {
-              "attachments": [
-                {
-                  "color": "${{ needs.build.result == 'success' && '#2eb886' || '#a30200' }}",
-                  "blocks": [
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ needs.build.result == 'success' && 'successful' || 'failed' }}! ${{ needs.build.result == 'success' && ':ok_hand:' || ':scream::cry:' }}"
-                      }
-                    },
-                    { "type": "divider" },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": ${{ toJSON(github.event.head_commit.message) }}
-                      },
-                      "accessory": {
-                        "type": "image",
-                        "image_url": "${{ needs.build.result == 'success' && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
-                        "alt_text": "${{ needs.build.result == 'success' && 'Nice!' || 'Oof.' }}"
-                      }
-                    },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{needs.build.outputs.image_tag_build}}"
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+          event: build
+          success: success()
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
   deploy:
     name: "Deploy"
-# TODO: Re-introduce this filter before PR
-#    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
     runs-on: ubuntu-latest
     needs: [build]
     steps:
@@ -266,42 +188,12 @@ jobs:
 #          oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
 #          oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
-  notify_deploy:
-    name: "Notify Deploy"
-    runs-on: ubuntu-latest
-    if: always() && needs.deploy.result != 'skipped'
-    needs: [ deploy ]
-    steps:
-      - name: "Deployment Notification"
-        id: slack
-        uses: slackapi/slack-github-action@v1.19.0
+
+      - name: "Slack Notify"
+        if: success() || failure()
+        uses: linc-technologies/.github/.github/actions/slack_notify@master
         with:
-          channel-id: 'G3184HDT6' # CICD
-          payload: |
-            {
-              "attachments": [
-                {
-                  "color": "${{ needs.deploy.result == 'success' && '#2eb886' || '#a30200' }}",
-                  "blocks": [
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "*${{ needs.deploy.result == 'success' && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
-                      }
-                    },
-                    { "type": "divider" },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag_build}} to *${{github.ref_name}}* ${{ needs.deploy.result == 'success' && 'successful' || 'failed' }}! ${{ needs.deploy.result == 'success' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+          event: deploy
+          success: success()
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+

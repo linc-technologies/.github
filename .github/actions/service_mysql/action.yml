@@ -1,0 +1,13 @@
+name: "Service: MySQL"
+description: "Sets up a MySQL service for testing purposes."
+runs:
+  using: "composite"
+  steps:
+    - name: "Configure MySQL Hostname"
+      run: |
+        sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
+      shell: bash
+
+    - name: "Start MySQL"
+      run: sudo systemctl start mysql
+      shell: bash
