@@ -238,7 +238,9 @@ jobs:
 # TODO: Swap back to git ref for env instead of hard coded development
 #          namespace: ${{ github.ref_name }}
           namespace: "development"
-          tag: ${{ needs.build.outputs.build_num }}
+# TODO: Swap back before merge into main
+#          tag: ${{ needs.build.outputs.build_num }}
+          tag: "development"
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
