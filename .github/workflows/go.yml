@@ -47,30 +47,15 @@ jobs:
           cd ./cmd/${{ github.event.repository.name }}/
           go build -tags internal -ldflags="-s -w" -v
 
-# TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
-#      # Run vet & lint on the code
-#      - name: Run vet & lint
-#        run: |
-#          go vet .
-#          golint .
-
-      # Test code expects to access services @ `mongo` / `mysql` per previous build system
-      - name: Service Hostnames
-        run: |
-          sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
-          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
-
-      # Start a Mongo DB server for testing
-      - name: Start MongoDB
+      - name: "Setup Mongo"
         if: github.event.repository.name != 'finance'
-        uses: supercharge/mongodb-github-action@1.7.0
-        with:
-          mongodb-version: '4.4'
+        uses: linc-technologies/.github/.github/actions/service_mongo@feature/composite
 
-      # Start a MySQL server for testing, pre-installed on Ubuntu runners
-      - name: Start MySQL
+      - name: "Setup MySQL"
         if: github.event.repository.name == 'finance'
-        run: sudo systemctl start mysql
+        uses: linc-technologies/.github/.github/actions/service_finance@feature/composite
+
+
 
       # Run testing on the code
       - name: Run testing

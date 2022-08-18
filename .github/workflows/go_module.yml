@@ -29,18 +29,9 @@ jobs:
         with:
           pat: ${{ secrets.CICD_TOKEN }}
 
-# TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
-#      # Run vet & lint on the code
-#      - name: Run vet & lint
-#        run: |
-#          go vet .
-#          golint .
-
-      # Test code expects to access services @ `mongo` / `mysql` per previous build system
-      - name: Service Hostnames
-        run: |
-          sudo echo "127.0.0.1 mongo" | sudo tee -a /etc/hosts
-          sudo echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
+      - name: "Setup Mongo"
+        if: github.event.repository.name != 'finance'
+        uses: linc-technologies/.github/.github/actions/service_mongo@feature/composite
 
       # Start a Mongo DB server for testing
       - name: Start MongoDB
