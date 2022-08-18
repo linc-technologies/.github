@@ -1,0 +1,26 @@
+name: "Kubernetes Auth"
+description: "Configure kubectl with a default context given an API serve, token, and cert."
+inputs:
+  server:
+    description: "The Kubernetes API server URL."
+    required: true
+  token:
+    description: "The Kubernetes API server authentication token."
+    required: true
+  cert:
+    description: "The Kubernetes API server certificate for secure traffic."
+    required: true
+runs:
+  using: "composite"
+  steps:
+
+    - name: "Configure Kubectl"
+      run: |
+        kubectl config set-credentials default --token=${{ inputs.token }}
+        # If cert provided...
+        # kubectl config set-cluster default --server=${{ inputs.server }} --certificate-authority=ca.crt
+        # If cert not provided
+        kubectl config set-cluster default --server=${{ inputs.server }} --insecure-skip-tls-verify=true
+        kubectl config set-context default --cluster=default --user=default
+        kubectl config use-context default
+      shell: bash

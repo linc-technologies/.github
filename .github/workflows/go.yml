@@ -112,40 +112,33 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Configure Kubectl"
+      - name: "Install Kubectl"
         uses: azure/setup-kubectl@v2.0
         with:
           version: 'v1.22.6'
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
-      - name: "Kubernetes Auth (Dev AU East)"
+      - name: "Configure Kubectl (development-au-east)"
         if: ${{ github.ref  != 'refs/heads/production' }}
-        run: |
-          kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
-          # If cert provided...
-          # kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
-          # If cert not provided
-          kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-context default --cluster=default --user=default
-          kubectl config use-context default
+        uses: linc-technologies/.github/.github/actions/k8s_auth@master
+        with:
+          server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
-      - name: "Kubernetes Auth (Prod AU East)"
+      - name: "Configure Kubectl (production-au-east)"
         if: ${{ github.ref == 'refs/heads/production' }}
-        run: |
-          kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
-          # If cert provided...
-          # kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
-          # If cert not provided
-          kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-context default --cluster=default --user=default
-          kubectl config use-context default
+        uses: linc-technologies/.github/.github/actions/k8s_auth@master
+        with:
+          server: ${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.PRODUCTION_AU_EAST_AKS_CERT }}
 
       # Showcase the client and server Kubectl versions
       - name: "Kubectl Version (Client & Server)"
         run: kubectl version
 
-      # Deploy to the Development environment via Helm
       - name: "Helm Deploy"
         id: helm
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
@@ -160,6 +153,7 @@ jobs:
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
       # Deploy to other environments if we did not deploy with Helm (Staging, Production) via k8s Deployment patch
+      # TODO: Remove once fully cutover
       - name: "Kubernetes Deploy"
         if: steps.helm.conclusion.skipped
         env:
