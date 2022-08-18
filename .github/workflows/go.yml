@@ -7,24 +7,18 @@ on:
 env:
   CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # The "build" workflow
   build:
     name: "Build"
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
     outputs:
       build_num: ${{ steps.tag.outputs.build_num }}
       image_tag_build: ${{ steps.tag.outputs.image_tag_build }}
       image_tag_branch: ${{ steps.tag.outputs.image_tag_branch }}
-
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+
+      - name: "Checkout"
+        uses: actions/checkout@v2
 
       - name: "Git HTTPS"
         uses: linc-technologies/.github/.github/actions/git_http@master
@@ -125,7 +119,7 @@ jobs:
           version: 'v1.22.6'
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
-      - name: Kubernetes Auth (Dev AU East)
+      - name: "Kubernetes Auth (Dev AU East)"
         if: ${{ github.ref  != 'refs/heads/production' }}
         run: |
           kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
@@ -137,7 +131,7 @@ jobs:
           kubectl config use-context default
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
-      - name: Kubernetes Auth (Prod AU East)
+      - name: "Kubernetes Auth (Prod AU East)"
         if: ${{ github.ref == 'refs/heads/production' }}
         run: |
           kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
@@ -152,7 +146,7 @@ jobs:
       - run: kubectl version
 
       # Deploy specific container revision
-      - name: Kubernetes Deploy
+      - name: "Kubernetes Deploy"
         env:
           CONTAINER: ${{ github.event.repository.name }}
           DEPLOYMENT: ${{ github.event.repository.name }}-deployment

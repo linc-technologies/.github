@@ -13,8 +13,6 @@ on:
         type: string
         required: true
 
-
-
 env:
   CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
 
@@ -229,7 +227,7 @@ jobs:
         run: kubectl version
 
       # Deploy specific container revision based on workflow inputs
-      - name: Kubernetes Deploy
+      - name: "Kubernetes Deploy"
         env:
           CONTAINER: ${{ inputs.CONTAINER }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
