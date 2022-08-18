@@ -1,0 +1,98 @@
+name: "Slack Notify"
+description: "Send a notification to Slack. Used to signal successful builds and deployments."
+inputs:
+  event:
+    description: "The 'event' for which we are notifying: ['build','deploy']"
+    required: true
+  webhook_url:
+    description: "The Slack webhook for your workspace."
+    required: true
+  success:
+    description: "The status of the build pipeline. Expects a boolean as returned by inputs.success"
+    required: true
+  image_tag:
+    description: "An associated image tag with which to report back to "
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: "Build Notification"
+      if: inputs.event == 'build'
+      uses: slackapi/slack-github-action@v1.19.0
+      with:
+        channel-id: 'G3184HDT6' # CICD
+        payload: |
+          {
+            "attachments": [
+              {
+                "color": "${{ inputs.success && '#2eb886' || '#a30200' }}",
+                "blocks": [
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ inputs.success && 'successful' || 'failed' }}! ${{ inputs.success && ':ok_hand:' || ':scream::cry:' }}"
+                    }
+                  },
+                  { "type": "divider" },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": ${{ toJSON(github.event.head_commit.message) }}
+                    },
+                    "accessory": {
+                      "type": "image",
+                      "image_url": "${{ inputs.success && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
+                      "alt_text": "${{ inputs.success && 'Nice!' || 'Oof.' }}"
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{inputs.image_tag}}"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.webhook_url }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+    - name: "Deployment Notification"
+      if: inputs.event == 'deploy'
+      uses: slackapi/slack-github-action@v1.19.0
+      with:
+        channel-id: 'G3184HDT6' # CICD
+        payload: |
+          {
+            "attachments": [
+              {
+                "color": "${{ inputs.success && '#2eb886' || '#a30200' }}",
+                "blocks": [
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "*${{ inputs.success && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
+                    }
+                  },
+                  { "type": "divider" },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{inputs.image_tag}} to *${{github.ref_name}}* ${{ inputs.success && 'successful' || 'failed' }}! ${{ inputs.success && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.webhook_url }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
