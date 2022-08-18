@@ -47,7 +47,7 @@ jobs:
 
       - name: "Setup MySQL"
         if: github.event.repository.name == 'finance'
-        uses: linc-technologies/.github/.github/actions/service_finance@feature/composite
+        uses: linc-technologies/.github/.github/actions/service_mysql@feature/composite
 
 
 
