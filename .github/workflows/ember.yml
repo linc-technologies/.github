@@ -30,24 +30,18 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
+      - name: "Git SSH"
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: linc-technologies/.github/.github/actions/git_ssh@master
+        with:
+          key: ${{ secrets.VCS_SSH_KEY }}
+
       - name: "Setup Node 10.21"
         uses: actions/setup-node@v3
         with:
           node-version: 10.21
           cache: 'npm'
           cache-dependency-path: linced-*/package-lock.json
-
-      - name: "SSH Keyscan"
-        id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com)"
-
-      - name: "SSH Key Install"
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.VCS_SSH_KEY }}
-          name: id_rsa
-          known_hosts: ${{ steps.scan.outputs.known_hosts }}
-          if_key_exists: replace
 
       - name: "Login to ACR"
         uses: docker/login-action@v2
