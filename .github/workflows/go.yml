@@ -41,11 +41,11 @@ jobs:
 
       - name: "Setup Mongo"
         if: github.event.repository.name != 'finance'
-        uses: linc-technologies/.github/.github/actions/service_mongo@feature/composite
+        uses: linc-technologies/.github/.github/actions/service_mongo@master
 
       - name: "Setup MySQL"
         if: github.event.repository.name == 'finance'
-        uses: linc-technologies/.github/.github/actions/service_mysql@feature/composite
+        uses: linc-technologies/.github/.github/actions/service_mysql@master
 
       - name: "Test"
         run: go test -vet=off -tags internal -v ./...
@@ -95,7 +95,7 @@ jobs:
 
       - name: "Slack Notify"
         if: success() || failure()
-        uses: linc-technologies/.github/.github/actions/slack_notify@feature/composite
+        uses: linc-technologies/.github/.github/actions/slack_notify@master
         with:
           event: build
           success: success()
@@ -153,7 +153,7 @@ jobs:
 
       - name: "Slack Notify"
         if: success() || failure()
-        uses: linc-technologies/.github/.github/actions/slack_notify@feature/composite
+        uses: linc-technologies/.github/.github/actions/slack_notify@master
         with:
           event: deploy
           success: success()
