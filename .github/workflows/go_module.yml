@@ -24,22 +24,10 @@ jobs:
           go-version: '1.17' # The Go version to download (if necessary) and use.
           cache: true
 
-      - name: "SSH Keyscan"
-        id: scan
-        run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com)"
-
-      - name: "SSH Key Install"
-        uses: shimataro/ssh-key-action@v2
+      - name: "Git HTTPS"
+        uses: linc-technologies/.github/.github/actions/git_http@master
         with:
-          key: ${{ secrets.VCS_SSH_KEY }}
-          name: id_rsa
-          known_hosts: ${{ steps.scan.outputs.known_hosts }}
-          if_key_exists: replace
-
-      # Issue an HTTPS -> Git override for VCS repositories
-      - name: Git Config
-        run: |
-          git config --global url."git@github.com:".insteadOf "https://github.com"          
+          pat: ${{ secrets.CICD_TOKEN }}
 
 # TODO: Change this to CD to a valid directory, ensure it will not cause widespread breaks
 #      # Run vet & lint on the code
