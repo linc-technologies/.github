@@ -223,26 +223,33 @@ jobs:
       - name: "Kubectl Version (Client & Server)"
         run: kubectl version
 
+      # Deploy to the Development environment via Helm
       - name: "Helm Deploy (Dev AU East)"
-# TODO: Change feature/DEVOPS-128-helm-deploy -> master when ready to PR
-        uses: linc-technologies/.github/.github/actions/deploy_helm@feature/DEVOPS-128-helm-deploy
-# TODO: Change to an appropriate filter before merging (left unconditional for testing)
-#        if: ${{ github.event.repository.name == 'people' && github.ref_name == 'development' }}
-#        if: ${{ github.ref  != 'refs/heads/production' }}
+        id: helm
+        uses: linc-technologies/.github/.github/actions/deploy_helm@master
+        if: ${{ github.ref_name == 'development' }}
         with:
           server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
           token: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
           cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
           chart: "service"
           release: ${{ github.event.repository.name }}
-# TODO: Swap back to git ref for env instead of hard coded development
-#          namespace: ${{ github.ref_name }}
-          namespace: "development"
-# TODO: Swap back before merge into main
-#          tag: ${{ needs.build.outputs.build_num }}
-          tag: "development"
+          namespace: ${{ github.ref_name }}
+          tag: ${{ needs.build.outputs.build_num }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+
+      # Deploy to other environments if we did not deploy with Helm (Staging, Production) via k8s Deployment patch
+      - name: "Kubernetes Deploy"
+        if: steps.helm.conclusion.skipped
+        env:
+          CONTAINER: ${{ github.event.repository.name }}
+          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+        run: |
+          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
 
 # TODO: Turn on for prod when ready to cutover :-)
 #      - name: "Helm Deploy (Prod AU East)"
