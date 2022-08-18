@@ -187,7 +187,8 @@ jobs:
     steps:
 
       # In order to retrieve deployment config
-      - uses: actions/checkout@v2
+      - name: "Checkout"
+        uses: actions/checkout@v2
 
       - name: "Configure Kubectl"
         uses: azure/setup-kubectl@v2.0
@@ -195,7 +196,7 @@ jobs:
           version: 'v1.22.6'
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
-      - name: Kubernetes Auth (Dev AU East)
+      - name: "Kubernetes Auth (Dev AU East)"
         if: ${{ github.ref  != 'refs/heads/production' }}
         run: |
           kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
@@ -207,7 +208,7 @@ jobs:
           kubectl config use-context default
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
-      - name: Kubernetes Auth (Prod AU East)
+      - name: "Kubernetes Auth (Prod AU East)"
         if: ${{ github.ref == 'refs/heads/production' }}
         run: |
           kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
@@ -219,26 +220,38 @@ jobs:
           kubectl config use-context default
 
       # Showcase the client and server Kubectl versions
-      - run: kubectl version
+      - name: "Kubectl Version (Client & Server)"
+        run: kubectl version
 
-      # Deploy specific container revision
-      - name: Helm Deploy
-# TODO: Re-introduce this filter before PR
+      - name: "Helm Deploy (Dev AU East)"
+# TODO: Change feature/DEVOPS-128-helm-deploy -> master when ready to PR
+        uses: linc-technologies/.github/.github/actions/deploy_helm@feature/DEVOPS-128-helm-deploy
+# TODO: Change to an appropriate filter before merging (left unconditional for testing)
 #        if: ${{ github.event.repository.name == 'people' && github.ref_name == 'development' }}
-        env:
-          DEPLOYMENT: ${{ github.event.repository.name }}
+#        if: ${{ github.ref  != 'refs/heads/production' }}
+        with:
+          server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
+          release: ${{ github.event.repository.name }}
 # TODO: Swap back to git ref for env instead of hard coded development
-#          NAMESPACE: ${{ github.ref_name }}
-          NAMESPACE: "development"
-          TAG: ${{ needs.build.outputs.build_num }}
-        run: |
-          cd ./deployments/
-          helm registry login linced.azurecr.io --username ${{ secrets.AZURE_ACR_LINCED_USERNAME }} --password ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
-          helm pull oci://linced.azurecr.io/helm/service-chart 
-          helm upgrade -i $DEPLOYMENT ./service-chart-* \
-            --namespace $NAMESPACE \
-            --set image.tag=$TAG
+#          namespace: ${{ github.ref_name }}
+          namespace: "development"
+          oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+          oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
+# TODO: Turn on for prod when ready to cutover :-)
+#      - name: "Helm Deploy (Prod AU East)"
+#        if: ${{ github.ref == 'refs/heads/production' }}
+#        uses: linc-technologies/.github/.github/actions/deploy_helm@master
+#        with:
+#          server: ${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }}
+#          token: ${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
+#          cert: ${{ secrets.PRODUCTION_AU_EAST_AKS_CERT }}
+#          release: ${{ github.event.repository.name }}
+#          namespace: ${{ github.ref_name }}
+#          oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+#          oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
   notify_deploy:
     name: "Notify Deploy"
