@@ -1,0 +1,43 @@
+name: "Helm Deploy"
+description: "Install or Upgrade a Helm release in Kubernetes."
+inputs:
+  server:
+    description: ""
+    required: true
+  token:
+    description: ""
+    required: true
+  cert:
+    description: ""
+    required: true
+  chart:
+    description: ""
+    required: true
+  release:
+    description: ""
+    required: true
+  namespace:
+    description: ""
+    required: true
+  tag:
+    description: ""
+    required: true
+  oci_user:
+    description: ""
+    required: true
+  oci_pass:
+    description: ""
+    required: true
+runs:
+  using: "composite"
+  steps:
+
+    - name: "Helm Deploy"
+      run: |
+        cd ./deployments/
+        helm registry login linced.azurecr.io --username ${{ inputs.oci_user }} --password ${{ inputs.oci_pass }}
+        helm pull oci://linced.azurecr.io/helm/${{ inputs.chart }}-chart 
+        helm upgrade -i ${{ inputs.release }} ./${{ inputs.chart }}-chart-* \
+          --namespace ${{ inputs.namespace }} \
+          --set image.tag=${{ inputs.tag }}
+      shell: bash
