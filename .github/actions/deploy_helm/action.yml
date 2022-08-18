@@ -2,31 +2,31 @@ name: "Helm Deploy"
 description: "Install or Upgrade a Helm release in Kubernetes."
 inputs:
   server:
-    description: ""
+    description: "The Kubernetes API server URL."
     required: true
   token:
-    description: ""
+    description: "The Kubernetes API server authentication token."
     required: true
   cert:
-    description: ""
+    description: "The Kubernetes API server certificate for secure traffic."
     required: true
   chart:
-    description: ""
+    description: "The name of the chart to use: ['app', 'service', 'php']"
     required: true
   release:
-    description: ""
+    description: "The name of the Helm release to install, ie, `people`."
     required: true
   namespace:
-    description: ""
+    description: "The Kubernetes namespace to install the release into."
     required: true
   tag:
-    description: ""
+    description: "The image build tag (everything after the repository name and ':') to update the deployment with. Ie, `development` or `10042`."
     required: true
   oci_user:
-    description: ""
+    description: "The username to authenticate with ACR with to retrieve OCI Helm charts."
     required: true
   oci_pass:
-    description: ""
+    description: "The password to authenticate with ACR with to retrieve OCI Helm charts."
     required: true
 runs:
   using: "composite"
