@@ -10,6 +10,9 @@ inputs:
   success:
     description: "The status of the build pipeline. Expects a boolean as returned by inputs.success"
     required: true
+  image_tag:
+    description: "An associated image tag with which to report back to "
+    required: true
 runs:
   using: "composite"
   steps:
@@ -48,7 +51,7 @@ runs:
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{needs.build.outputs.image_tag_build}}"
+                      "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{inputs.image_tag}}"
                     }
                   }
                 ]
@@ -82,7 +85,7 @@ runs:
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{needs.build.outputs.image_tag_build}} to *${{github.ref_name}}* ${{ inputs.success && 'successful' || 'failed' }}! ${{ inputs.success && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
+                      "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{inputs.image_tag}} to *${{github.ref_name}}* ${{ inputs.success && 'successful' || 'failed' }}! ${{ inputs.success && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
                     }
                   }
                 ]
