@@ -149,6 +149,7 @@ jobs:
       - name: "Helm Deploy (Dev AU East)"
         id: helm
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
+        # TODO: Adjust this filter for Staging when ready to cutover.
         if: ${{ github.ref_name == 'development' }}
         with:
           server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
@@ -173,7 +174,7 @@ jobs:
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
 
-# TODO: Turn on for prod when ready to cutover :-)
+# TODO: Turn on for prod when ready to cutover :-). Requires a second step due to having to pass different secrets in.
 #      - name: "Helm Deploy (Prod AU East)"
 #        if: ${{ github.ref == 'refs/heads/production' }}
 #        uses: linc-technologies/.github/.github/actions/deploy_helm@master
