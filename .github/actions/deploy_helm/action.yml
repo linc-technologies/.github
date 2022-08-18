@@ -1,15 +1,6 @@
 name: "Helm Deploy"
 description: "Install or Upgrade a Helm release in Kubernetes."
 inputs:
-  server:
-    description: "The Kubernetes API server URL."
-    required: true
-  token:
-    description: "The Kubernetes API server authentication token."
-    required: true
-  cert:
-    description: "The Kubernetes API server certificate for secure traffic."
-    required: true
   chart:
     description: "The name of the chart to use: ['app', 'service', 'php']"
     required: true
