@@ -1,0 +1,34 @@
+name: "Helm Deploy"
+description: "Install or Upgrade a Helm release in Kubernetes."
+inputs:
+  chart:
+    description: "The name of the chart to use: ['app', 'service', 'php']"
+    required: true
+  release:
+    description: "The name of the Helm release to install, ie, `people`."
+    required: true
+  namespace:
+    description: "The Kubernetes namespace to install the release into."
+    required: true
+  tag:
+    description: "The image build tag (everything after the repository name and ':') to update the deployment with. Ie, `development` or `10042`."
+    required: true
+  oci_user:
+    description: "The username to authenticate with ACR with to retrieve OCI Helm charts."
+    required: true
+  oci_pass:
+    description: "The password to authenticate with ACR with to retrieve OCI Helm charts."
+    required: true
+runs:
+  using: "composite"
+  steps:
+
+    - name: "Helm Deploy"
+      run: |
+        cd ./deployments/
+        helm registry login linced.azurecr.io --username ${{ inputs.oci_user }} --password ${{ inputs.oci_pass }}
+        helm pull oci://linced.azurecr.io/helm/${{ inputs.chart }}-chart 
+        helm upgrade -i ${{ inputs.release }} ./${{ inputs.chart }}-chart-* \
+          --namespace ${{ inputs.namespace }} \
+          --set image.tag=${{ inputs.tag }}
+      shell: bash
