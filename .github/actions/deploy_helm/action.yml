@@ -30,5 +30,7 @@ runs:
         helm pull oci://linced.azurecr.io/helm/${{ inputs.chart }}-chart 
         helm upgrade -i ${{ inputs.release }} ./${{ inputs.chart }}-chart-* \
           --namespace ${{ inputs.namespace }} \
-          --set image.tag=${{ inputs.tag }}
+          -f ./values.${{ inputs.namespace }}.yaml \
+          --set image.tag=${{ inputs.tag }} \
+          --wait --timeout 2m --atomic
       shell: bash
