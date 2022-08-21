@@ -36,5 +36,5 @@ jobs:
         uses: linc-technologies/.github/.github/actions/slack_notify@master
         with:
           event: build
-          success: ${{ success() }}
+          success: success()
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
