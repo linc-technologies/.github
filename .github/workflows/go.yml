@@ -55,5 +55,5 @@ jobs:
           event: build
           # Success only works in if conditionals
           # https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions
-          success: success()
+          success: ${{ !contains(steps.*.outcome, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
