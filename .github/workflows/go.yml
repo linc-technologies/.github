@@ -23,16 +23,23 @@ jobs:
         run: exit 1
 
       - name: "Debug"
-        if: success() || failure()
+        if: always()
         run: |
           echo ${{ steps.pass.outcome }}
           echo ${{ steps.fail.outcome }}
           echo ${{ steps.*.outcome }}
 
       - name: Dump steps context
+        if: always()
         env:
           STEPS_CONTEXT: ${{ toJson(steps) }}
         run: echo "$STEPS_CONTEXT"
+
+      - name: Dump steps outcomes
+        if: always()
+        env:
+          STEPS_OC: ${{ toJson(steps.*.outcome) }}
+        run: echo "$STEPS_OC"
 
       - name: "Slack Notify"
         if: success() || failure()
