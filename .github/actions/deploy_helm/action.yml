@@ -32,5 +32,5 @@ runs:
           --namespace ${{ inputs.namespace }} \
           -f ./values.${{ inputs.namespace }}.yaml \
           --set image.tag=${{ inputs.tag }} \
-          --wait --timeout 2m --atomic
+          --wait --timeout 2m
       shell: bash
