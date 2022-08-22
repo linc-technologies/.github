@@ -22,14 +22,17 @@ jobs:
         id: fail
         run: exit 1
 
-      - name: "Slack Notify"
+      - name: "Debug"
         if: success() || failure()
         run: |
           echo ${{ steps.pass.outcome }}
           echo ${{ steps.fail.outcome }}
           echo ${{ steps.*.outcome }}
-          echo ${{ toJSON(steps) }}
-          
+
+      - name: Dump steps context
+        env:
+          STEPS_CONTEXT: ${{ toJson(steps) }}
+        run: echo "$STEPS_CONTEXT"
 
       - name: "Slack Notify"
         if: success() || failure()
