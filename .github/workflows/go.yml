@@ -44,7 +44,7 @@ jobs:
       - name: Dump steps contains bool
         if: always()
         env:
-          FAILURE: ${{ contains(steps.*.outcome, "failure") }}
+          FAILURE: ${{ contains(steps.*.outcome, 'failure') }}
         run: echo "$FAILURE"
 
       - name: "Slack Notify"
