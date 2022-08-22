@@ -41,6 +41,12 @@ jobs:
           STEPS_OC: ${{ toJson(steps.*.outcome) }}
         run: echo "$STEPS_OC"
 
+      - name: Dump steps contains bool
+        if: always()
+        env:
+          FAILURE: ${{ contains(steps.*.outcome, "failure") }}
+        run: echo "$FAILURE"
+
       - name: "Slack Notify"
         if: success() || failure()
         uses: linc-technologies/.github/.github/actions/slack_notify@master
