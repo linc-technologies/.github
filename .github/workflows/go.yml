@@ -11,50 +11,167 @@ jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
+    outputs:
+      build_num: ${{ steps.tag.outputs.build_num }}
+      image_tag_build: ${{ steps.tag.outputs.image_tag_build }}
+      image_tag_branch: ${{ steps.tag.outputs.image_tag_branch }}
     steps:
 
+      - name: "Checkout"
+        uses: actions/checkout@v2
 
-      - name: "Pass"
-        id: pass
-        run: exit 0
+      - name: "Git HTTPS"
+        uses: linc-technologies/.github/.github/actions/git_http@master
+        with:
+          pat: ${{ secrets.CICD_TOKEN }}
 
-      - name: "Fail"
-        id: fail
-        run: exit 1
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.17' # The Go version to download (if necessary) and use.
+#          cache: true $ TODO: Throwing issues with repeat builds....
 
-      - name: "Debug"
-        if: always()
+      - name: "Build"
+        env:
+          GOPRIVATE: github.com/linc-technologies
+          CGO_ENABLED: 0
         run: |
-          echo ${{ steps.pass.outcome }}
-          echo ${{ steps.fail.outcome }}
-          echo ${{ steps.*.outcome }}
+          cd ./cmd/${{ github.event.repository.name }}/
+          go build -tags internal -ldflags="-s -w" -v
 
-      - name: Dump steps context
-        if: always()
-        env:
-          STEPS_CONTEXT: ${{ toJson(steps) }}
-        run: echo "$STEPS_CONTEXT"
+      - name: "Setup Mongo"
+        if: github.event.repository.name != 'finance'
+        uses: linc-technologies/.github/.github/actions/service_mongo@master
 
-      - name: Dump steps outcomes
-        if: always()
-        env:
-          STEPS_OC: ${{ toJson(steps.*.outcome) }}
-        run: echo "$STEPS_OC"
+      - name: "Setup MySQL"
+        if: github.event.repository.name == 'finance'
+        uses: linc-technologies/.github/.github/actions/service_mysql@master
 
-      - name: Dump steps contains bool
-        if: always()
+      - name: "Test"
+        run: go test -vet=off -tags internal -v ./...
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # TODO: Create a new workflow for dependabot with only composite actions to limit steps like these
+      - name: "Login to ACR"
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: docker/login-action@v2
+        with:
+          registry: linced.azurecr.io
+          username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+
+      - name: "Export build tag"
+        id: tag
         env:
-          FAILURE: ${{ contains(steps.*.outcome, 'failure') }}
-        run: echo "$FAILURE"
+          BUILD: ${{ github.run_number }}
+        run: |
+          echo "::set-output name=build_num::$(($BUILD+10000))"
+          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))"
+          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"
+
+      - name: "Build and export to Docker"
+        uses: docker/build-push-action@v3
+        if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
+        id: push_build_tag
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.tag.outputs.image_tag_build }}
+          file: Dockerfile.drone
+
+      - name: "Build and export to Docker (Environment Based)"
+        uses: docker/build-push-action@v3
+        if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+        id: push_build_and_env_tag
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.tag.outputs.image_tag_build }}
+            ${{ steps.tag.outputs.image_tag_branch }}
+          file: Dockerfile.drone
 
       - name: "Slack Notify"
         if: success() || failure()
-        # TODO: Move this back to master
-        uses: linc-technologies/.github/.github/actions/slack_notify@fix/slack-failures
+        uses: linc-technologies/.github/.github/actions/slack_notify@master
         continue-on-error: true
         with:
           event: build
-          # Success only works in if conditionals
-          # https://docs.github.com/en/actions/learn-github-actions/expressions#status-check-functions
           success: ${{ !contains(steps.*.outcome, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  deploy:
+    name: "Deploy"
+    if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+
+      # In order to retrieve deployment config
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Install Kubectl"
+        uses: azure/setup-kubectl@v2.0
+        with:
+          version: 'v1.22.6'
+
+      # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
+      - name: "Configure Kubectl (development-au-east)"
+        if: ${{ github.ref  != 'refs/heads/production' }}
+        uses: linc-technologies/.github/.github/actions/k8s_auth@master
+        with:
+          server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
+
+      # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
+      - name: "Configure Kubectl (production-au-east)"
+        if: ${{ github.ref == 'refs/heads/production' }}
+        uses: linc-technologies/.github/.github/actions/k8s_auth@master
+        with:
+          server: ${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.PRODUCTION_AU_EAST_AKS_CERT }}
+
+      # Showcase the client and server Kubectl versions
+      - name: "Kubectl Version (Client & Server)"
+        run: kubectl version
+
+      - name: "Helm Deploy"
+        id: helm
+        uses: linc-technologies/.github/.github/actions/deploy_helm@master
+        # TODO: Adjust this filter for Staging, and Production when ready to cutover.
+        if: ${{ github.ref_name == 'development' }}
+        with:
+          chart: "service"
+          release: ${{ github.event.repository.name }}
+          namespace: ${{ github.ref_name }}
+          tag: ${{ needs.build.outputs.build_num }}
+          oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+          oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+
+      # Deploy to other environments if we did not deploy with Helm (Staging, Production) via k8s Deployment patch
+      # TODO: Remove once fully cutover
+      - name: "Kubernetes Deploy"
+        if: steps.helm.conclusion.skipped
+        env:
+          CONTAINER: ${{ github.event.repository.name }}
+          DEPLOYMENT: ${{ github.event.repository.name }}-deployment
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+        run: |
+          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
+
+      - name: "Slack Notify"
+        if: success() || failure()
+        uses: linc-technologies/.github/.github/actions/slack_notify@master
+        continue-on-error: true
+        with:
+          event: deploy
+          success: ${{ !contains(steps.*.outcome, 'failure') }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
