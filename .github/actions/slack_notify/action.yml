@@ -31,28 +31,15 @@ runs:
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ inputs.success && 'successful' || 'failed' }}! ${{ inputs.success && ':ok_hand:' || ':scream::cry:' }}"
+                      "text": "Input: ${{ inputs.success }}. Calculated ${{ inputs.success && 'True' || 'False' }}"
                     }
                   },
-                  { "type": "divider" },
                   {
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": ${{ toJSON(github.event.head_commit.message) || 'No commit message' }}
+                      "text": ${{ toJSON(inputs.success) }}
                     },
-                    "accessory": {
-                      "type": "image",
-                      "image_url": "${{ inputs.success && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
-                      "alt_text": "${{ inputs.success && 'Nice!' || 'Oof.' }}"
-                    }
-                  },
-                  {
-                    "type": "section",
-                    "text": {
-                      "type": "mrkdwn",
-                      "text": ":github: *Repository*: <${{ github.server_url }}/${{ github.repository}}|${{ github.repository }}>\n:git: *Ref*: ${{ github.ref_name}}\n:1234: *Build Number*: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}>\n:docker: *Image Tag*: ${{inputs.image_tag}}"
-                    }
                   }
                 ]
               }
