@@ -25,7 +25,7 @@ runs:
           {
             "attachments": [
               {
-                "color": "${{ inputs.success == 'true' && '#2eb886') || '#a30200' }}",
+                "color": "${{ inputs.success == 'true' && '#2eb886' || '#a30200' }}",
                 "blocks": [
                   {
                     "type": "section",
