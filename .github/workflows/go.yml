@@ -50,7 +50,7 @@ jobs:
       - name: "Slack Notify"
         if: success() || failure()
         # TODO: Move this back to master
-        uses: linc-technologies/.github/.github/actions/slack_notify@fix/slack-failure
+        uses: linc-technologies/.github/.github/actions/slack_notify@fix/slack-failures
         continue-on-error: true
         with:
           event: build
