@@ -75,7 +75,7 @@ jobs:
         uses: linc-technologies/.github/.github/actions/slack_notify@master
         with:
           event: build
-          success: success()
+          success: ${{ !contains(steps.*.outcome, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   deploy:
@@ -146,5 +146,5 @@ jobs:
         uses: linc-technologies/.github/.github/actions/slack_notify@master
         with:
           event: deploy
-          success: success()
+          success: ${{ !contains(steps.*.outcome, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
