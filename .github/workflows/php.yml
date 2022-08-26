@@ -3,15 +3,6 @@ name: "PHP"
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      DEPLOYMENT:
-        description: "The name of the Kubernetes deployment to deploy to, ex: app-app-deployment"
-        type: string
-        required: true
-      CONTAINER:
-        description: "The name of the container within the Kubernetes deployment to patch, ex: app-app-deployment -c app-app"
-        type: string
-        required: true
 
 env:
   CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
