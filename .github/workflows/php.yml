@@ -85,6 +85,8 @@ jobs:
         with:
           version: 'v1.22.6'
 
+      # Export the build tag in the deployment stage as well as build because it's difficult to reconcile the image
+      # build tag from build.matrix1.output vs build.matrix2.output.
       - name: "Export build tag"
         id: tag
         env:
