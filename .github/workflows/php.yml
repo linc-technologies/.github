@@ -97,30 +97,25 @@ jobs:
           echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}"
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
-      - name: "Kubernetes Auth (Dev AU East)"
+      - name: "Configure Kubectl (development-au-east)"
         if: ${{ github.ref  != 'refs/heads/production' }}
-        run: |
-          kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
-          # If cert provided...
-          # kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
-          # If cert not provided
-          kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-context default --cluster=default --user=default
-          kubectl config use-context default
+        uses: linc-technologies/.github/.github/actions/k8s_auth@master
+        with:
+          server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
-      - name: "Kubernetes Auth (Prod AU East)"
+      - name: "Configure Kubectl (production-au-east)"
         if: ${{ github.ref == 'refs/heads/production' }}
-        run: |
-          kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
-          # If cert provided...
-          # kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
-          # If cert not provided
-          kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-context default --cluster=default --user=default
-          kubectl config use-context default
+        uses: linc-technologies/.github/.github/actions/k8s_auth@master
+        with:
+          server: ${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.PRODUCTION_AU_EAST_AKS_CERT }}
 
-      - name: "Kubectl Version"
+      # Showcase the client and server Kubectl versions
+      - name: "Kubectl Version (Client & Server)"
         run: kubectl version
 
       # Deploy specific container revision based on workflow inputs
