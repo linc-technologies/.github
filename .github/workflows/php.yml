@@ -36,8 +36,8 @@ jobs:
           BUILD: ${{ github.run_number }}
         run: |
           echo "::set-output name=build_num::$(($BUILD+10000))"
-          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))"
-          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}"
+          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))"
+          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}"
 
       - name: "Build and export to Docker"
         uses: docker/build-push-action@v3
@@ -92,8 +92,8 @@ jobs:
           BUILD: ${{ github.run_number }}
         run: |
           echo "::set-output name=build_num::$(($BUILD+10000))"
-          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))"
-          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}"
+          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))"
+          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}"
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Kubernetes Auth (Dev AU East)"
