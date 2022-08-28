@@ -89,8 +89,6 @@ jobs:
           BUILD: ${{ github.run_number }}
         run: |
           echo "::set-output name=build_num::$(($BUILD+10000))"
-          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))"
-          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}"
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Configure Kubectl (development-au-east)"
@@ -121,7 +119,7 @@ jobs:
           chart: "php"
           release: ${{ github.event.repository.name }}
           namespace: ${{ github.ref_name }}
-          tag: ${{ steps.tag.outputs.image_tag_build }}
+          tag: ${{ steps.tag.outputs.build_num }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
