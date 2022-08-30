@@ -26,6 +26,8 @@ jobs:
           make dependencies
 
       - name: "Build"
+        env:
+          GOPRIVATE: github.com/linc-technologies
         run: |
           export PATH=$HOME/bin/:$GOPATH/bin/:$PATH
           make
