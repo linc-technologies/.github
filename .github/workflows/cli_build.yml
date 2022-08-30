@@ -11,6 +11,11 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
+      - name: "Git HTTPS"
+        uses: linc-technologies/.github/.github/actions/git_http@master
+        with:
+          pat: ${{ secrets.CICD_TOKEN }}
+
       - name: "Setup Go"
         uses: actions/setup-go@v3
         with:
