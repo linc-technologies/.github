@@ -182,6 +182,7 @@ jobs:
       - name: "Slack Notify"
         if: success() || failure()
         uses: linc-technologies/.github/.github/actions/slack_notify@master
+        continue-on-error: true
         with:
           event: build
           success: ${{ !contains(steps.*.outcome, 'failure') }}
@@ -241,6 +242,7 @@ jobs:
       - name: "Slack Notify"
         if: success() || failure()
         uses: linc-technologies/.github/.github/actions/slack_notify@master
+        continue-on-error: true
         with:
           event: deploy
           success: ${{ !contains(steps.*.outcome, 'failure') }}
