@@ -228,8 +228,24 @@ jobs:
       - name: "Kubectl Version"
         run: kubectl version
 
+      - name: "Helm Deploy"
+        id: helm
+        uses: linc-technologies/.github/.github/actions/deploy_helm@master
+        # TODO: Adjust this filter for Staging, and Production when ready to cutover.
+        if: ${{ github.ref_name == 'development' }}
+        with:
+          chart: "app"
+          release: ${{ github.event.repository.name }}
+          namespace: ${{ github.ref_name }}
+          tag: ${{ needs.build.outputs.build_num }}
+          oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+          oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+
+      # Deploy to other environments if we did not deploy with Helm (Staging, Production) via k8s Deployment patch
+      # TODO: Remove once fully cutover
       # Deploy specific container revision based on workflow inputs
       - name: "Kubernetes Deploy"
+        if: steps.helm.conclusion == 'skipped'
         env:
           CONTAINER: ${{ inputs.CONTAINER }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
