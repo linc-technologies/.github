@@ -3,6 +3,7 @@ name: "Ember"
 on:
   workflow_dispatch:
   workflow_call:
+    # TODO: Deprecate these as we move to helm
     inputs:
       DEPLOYMENT:
         description: "The name of the Kubernetes deployment to deploy to, ex: app-app-deployment"
@@ -232,7 +233,8 @@ jobs:
         id: helm
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         # TODO: Adjust this filter for Staging, and Production when ready to cutover.
-        if: ${{ github.ref_name == 'development' }}
+        # TODO: Only testing the admin app currently
+        if: ${{ github.ref_name == 'development' && github.event.repository.name == 'linced-admin' }}
         with:
           chart: "app"
           release: ${{ github.event.repository.name }}
