@@ -233,6 +233,12 @@ jobs:
       - name: "Kubectl Version"
         run: kubectl version
 
+      - name: "Release Name"
+        id: release_name
+        run: |
+          NAME=$(echo "${{ github.event.repository.name }}" | sed -e 's/linced-//g')
+          echo "::set-output name=release_name::${NAME}"
+
       - name: "Helm Deploy"
         id: helm
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
@@ -241,7 +247,7 @@ jobs:
         if: ${{ github.ref_name == 'development' && github.event.repository.name == 'linced-admin' }}
         with:
           chart: "app"
-          release: ${{ github.event.repository.name }}
+          release: ${{ steps.release_name.outputs.release_name }}
           namespace: ${{ github.ref_name }}
           tag: ${{ needs.build.outputs.build_num }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
