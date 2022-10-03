@@ -22,6 +22,7 @@ jobs:
     name: "Build"
     runs-on: ubuntu-latest
     outputs:
+      build_num: ${{ steps.tag.outputs.build_num }}
       image_tag_build: ${{ steps.tag.outputs.image_tag_build }}
       image_tag_branch: ${{ steps.tag.outputs.image_tag_branch }}
     steps:
