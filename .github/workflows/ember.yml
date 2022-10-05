@@ -197,6 +197,7 @@ jobs:
           file: Dockerfile.drone
 
       - name: "Debug Steps"
+        if: always()
         run: |
           echo "{{ toJSON(steps) }}"
 
