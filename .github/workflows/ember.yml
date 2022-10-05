@@ -196,6 +196,10 @@ jobs:
             ${{ steps.tag.outputs.image_tag_branch }}
           file: Dockerfile.drone
 
+      - name: "Debug Steps"
+        run: |
+          echo "{{ toJSON(steps) }}"
+
       - name: "Slack Notify"
         if: success() || failure()
         uses: linc-technologies/.github/.github/actions/slack_notify@master
