@@ -23,21 +23,24 @@ jobs:
     name: "Build"
     runs-on: ubuntu-latest
     outputs:
-      build_num: ${{ steps.tag.outputs.build_num }}
-      image_tag_build: ${{ steps.tag.outputs.image_tag_build }}
-      image_tag_branch: ${{ steps.tag.outputs.image_tag_branch }}
+      build_num: ${{ steps.export_build_tag.outputs.build_num }}
+      image_tag_build: ${{ steps.export_build_tag.outputs.image_tag_build }}
+      image_tag_branch: ${{ steps.export_build_tag.outputs.image_tag_branch }}
     steps:
 
       - name: "Checkout"
+        id: checkout
         uses: actions/checkout@v2
 
       - name: "Git SSH"
+        id: git_ssh
         if: ${{ github.actor != 'dependabot[bot]' }}
         uses: linc-technologies/.github/.github/actions/git_ssh@master
         with:
           key: ${{ secrets.VCS_SSH_KEY }}
 
       - name: "Setup Node 10.21"
+        id: setup_node
         uses: actions/setup-node@v3
         with:
           node-version: 10.21
@@ -45,6 +48,7 @@ jobs:
           cache-dependency-path: linced-*/package-lock.json
 
       - name: "Login to ACR"
+        id: login_to_acr
         uses: docker/login-action@v2
         with:
           registry: linced.azurecr.io
@@ -52,11 +56,13 @@ jobs:
           password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
       - name: "Install Dependencies (npm ci)"
+        id: install_dependencies
         run: |
           cd linced-*
           npm ci
 
       - name: "Set Branch Environment Variables"
+        id: set_branch_environment_variables
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         uses: iamtheyammer/branch-env-vars@v1.1.3
         with:
@@ -84,17 +90,20 @@ jobs:
 
       # TODO: Get working tests one day
 #      - name: "Run Ember Tests"
+#        id: run_ember_tests
 #        run: |
 #          cd linced-*
 #          npm run test
 
       - name: "Ember CLI Install"
+        id: ember_cli_install
         run: |
           npm install -g ember-cli@3.16
           which ember || echo "Could not find 'ember'"
           which ember
 
       - name: "Ember Build"
+        id: ember_build
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         env:
           BUILD: ${{ github.run_number }}
@@ -116,6 +125,7 @@ jobs:
           cp vendor-*.* update/ || true
 
       - name: "Create Sentry Release"
+        id: create_sentry_release
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -145,6 +155,7 @@ jobs:
         # Else sometimes a client can use cached HTML from a previous build which tries to fetch the previous assets.
         # This partially makes up for a lack of CDN...Still not stellar
       - name: "Add Previous Assets"
+        id: add_previous_assets
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         continue-on-error: true
         run: |
@@ -159,16 +170,18 @@ jobs:
           ls -la ./**/dist/assets || true
 
       - name: "Set Ownership"
+        id: set_ownership
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         run: sudo chown -Rv 101:101 ./linced-*/dist/*
 
       - name: "Set up Docker Buildx"
+        id: set_up_docker_buildx
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         uses: docker/setup-buildx-action@v2
 
       - name: "Export build tag"
+        id: export_build_tag
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
-        id: tag
         env:
           BUILD: ${{ github.run_number }}
         run: |
@@ -177,31 +190,26 @@ jobs:
           echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}"
 
 #      - name: "Build and export to Docker"
+#        id: build_and_export_to_docker
 #        uses: docker/build-push-action@v3
 #        if: ${{ !contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name) }}
-#        id: push_build_tag
 #        with:
 #          context: .
 #          push: true
-#          tags: ${{ steps.tag.outputs.image_tag_build }}
+#          tags: ${{ steps.export_build_tag.outputs.image_tag_build }}
 #          file: Dockerfile.drone
 
       - name: "Build and export to Docker (Environmental Tags)"
+        id: build_and_export_to_docker_environmental_tags
         uses: docker/build-push-action@v3
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
-        id: push_build_and_env_tag
         with:
           context: .
           push: true
           tags: |
-            ${{ steps.tag.outputs.image_tag_build }}
-            ${{ steps.tag.outputs.image_tag_branch }}
+            ${{ steps.export_build_tag.outputs.image_tag_build }}
+            ${{ steps.export_build_tag.outputs.image_tag_branch }}
           file: Dockerfile.drone
-
-      - name: "Debug Steps"
-        if: always()
-        run: |
-          echo "${{ toJSON(steps) }}"
 
       - name: "Slack Notify"
         if: success() || failure()
@@ -219,18 +227,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     steps:
-
       # In order to retrieve deployment config
       - name: "Checkout"
+        id: checkout
         uses: actions/checkout@v2
 
       - name: "Install Kubectl"
+        id: install_kubectl
         uses: azure/setup-kubectl@v2.0
         with:
           version: 'v1.22.6'
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Kubernetes Auth (Dev AU East)"
+        id: kubernetes_auth_dev_au_east
         if: ${{ github.ref  != 'refs/heads/production' }}
         run: |
           kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
@@ -243,6 +253,7 @@ jobs:
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
       - name: "Kubernetes Auth (Prod AU East)"
+        id: kubernetes_auth_prod_au_east
         if: ${{ github.ref == 'refs/heads/production' }}
         run: |
           kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
@@ -254,6 +265,7 @@ jobs:
           kubectl config use-context default
 
       - name: "Kubectl Version"
+        id: kubectl_version
         run: kubectl version
 
       - name: "Release Name"
@@ -263,7 +275,7 @@ jobs:
           echo "::set-output name=release_name::${NAME}"
 
       - name: "Helm Deploy"
-        id: helm
+        id: helm_deploy
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         # TODO: Adjust this filter for Staging, and Production when ready to cutover.
         # TODO: Only testing the admin app currently
@@ -280,7 +292,8 @@ jobs:
       # TODO: Remove once fully cutover
       # Deploy specific container revision based on workflow inputs
       - name: "Kubernetes Deploy"
-        if: steps.helm.conclusion == 'skipped'
+        id: kubernetes_deploy
+        if: steps.helm_deploy.conclusion == 'skipped'
         env:
           CONTAINER: ${{ inputs.CONTAINER }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
