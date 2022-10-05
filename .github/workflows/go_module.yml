@@ -11,24 +11,29 @@ jobs:
     steps:
 
       - name: "Checkout"
+        id: checkout
         uses: actions/checkout@v2
 
       - name: "Setup Go"
+        id: setup_go
         uses: actions/setup-go@v3
         with:
           go-version: '1.17' # The Go version to download (if necessary) and use.
           cache: true
 
       - name: "Git HTTPS"
+        id: git_https
         uses: linc-technologies/.github/.github/actions/git_http@master
         with:
           pat: ${{ secrets.CICD_TOKEN }}
 
       - name: "Setup Mongo"
+        id: setup_mongo
         if: github.event.repository.name != 'finance'
         uses: linc-technologies/.github/.github/actions/service_mongo@master
 
       - name: "Go Test"
+        id: go_test
         run: go test -vet=off -tags internal -v ./...
 
       - name: "Slack Notify"

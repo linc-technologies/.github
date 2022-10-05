@@ -9,19 +9,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
+        id: checkout
         uses: actions/checkout@v2
 
       - name: "Git HTTPS"
+        id: git_https
         uses: linc-technologies/.github/.github/actions/git_http@master
         with:
           pat: ${{ secrets.CICD_TOKEN }}
 
       - name: "Setup Go"
+        id: setup_go
         uses: actions/setup-go@v3
         with:
           go-version: "1.18"
 
       - name: "Run GoReleaser"
+        id: run_goreleaser
         uses: goreleaser/goreleaser-action@v2
         with:
           version: latest
