@@ -69,12 +69,14 @@ jobs:
             production:${{secrets.PRODUCTION_APP_FQDN}}
 
       - name: "Lint JavaScript"
+        id: lint_js
         if: contains(fromJson('["linced-app"]'), github.event.repository.name)
         run: |
           cd linced-*
           npm run lint:js
 
       - name: "Lint Handlebar Templates"
+        id: lint_hbs
         if: contains(fromJson('["linced-app"]'), github.event.repository.name)
         run: |
           cd linced-*
