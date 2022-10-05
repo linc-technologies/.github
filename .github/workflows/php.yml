@@ -27,9 +27,11 @@ jobs:
     steps:
 
       - name: "Checkout"
+        id: checkout
         uses: actions/checkout@v2
 
       - name: "Login to ACR"
+        id: login_to_acr
         uses: docker/login-action@v2
         with:
           registry: linced.azurecr.io
@@ -37,10 +39,11 @@ jobs:
           password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
       - name: "Set up Docker Buildx"
+        id: set_up_docker_buildx
         uses: docker/setup-buildx-action@v2
 
       - name: "Export build tag"
-        id: tag
+        id: export_build_tag
         env:
           BUILD: ${{ github.run_number }}
         run: |
@@ -49,25 +52,25 @@ jobs:
           echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}"
 
       - name: "Build and export to Docker"
+        id: build_and_export_to_docker
         uses: docker/build-push-action@v3
         if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
-        id: push_build_tag
         with:
           context: .
           push: true
-          tags: ${{ steps.tag.outputs.image_tag_build }}
+          tags: ${{ steps.export_build_tag.outputs.image_tag_build }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
       - name: "Build and export to Docker (Environment Based)"
+        id: build_and_export_to_docker_environment_based
         uses: docker/build-push-action@v3
         if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
-        id: push_build_and_env_tag
         with:
           context: .
           push: true
           tags: |
-            ${{ steps.tag.outputs.image_tag_build }}
-            ${{ steps.tag.outputs.image_tag_branch }}
+            ${{ steps.export_build_tag.outputs.image_tag_build }}
+            ${{ steps.export_build_tag.outputs.image_tag_branch }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
       - name: "Slack Notify"
@@ -91,12 +94,13 @@ jobs:
     steps:
 
       - name: "Install Kubectl"
+        id: install_kubectl
         uses: azure/setup-kubectl@v2.0
         with:
           version: 'v1.22.6'
 
       - name: "Export build tag"
-        id: tag
+        id: export_build_tag
         env:
           BUILD: ${{ github.run_number }}
         run: |
@@ -106,6 +110,7 @@ jobs:
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Kubernetes Auth (Dev AU East)"
+        id: kubernetes_auth_dev_au_east
         if: ${{ github.ref  != 'refs/heads/production' }}
         run: |
           kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
@@ -118,6 +123,7 @@ jobs:
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
       - name: "Kubernetes Auth (Prod AU East)"
+        id: kubernetes_auth_prod_au_east
         if: ${{ github.ref == 'refs/heads/production' }}
         run: |
           kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
@@ -129,15 +135,17 @@ jobs:
           kubectl config use-context default
 
       - name: "Kubectl Version"
+        id: kubectl_version
         run: kubectl version
 
       # Deploy specific container revision based on workflow inputs
       - name: "Kubernetes Deploy"
+        id: kubernetes_deploy
         env:
           CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ steps.tag.outputs.image_tag_build }}
+          IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
