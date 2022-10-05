@@ -199,7 +199,7 @@ jobs:
       - name: "Debug Steps"
         if: always()
         run: |
-          echo "{{ toJSON(steps) }}"
+          echo "${{ toJSON(steps) }}"
 
       - name: "Slack Notify"
         if: success() || failure()
