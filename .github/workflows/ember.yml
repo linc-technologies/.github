@@ -1,6 +1,7 @@
 name: "Ember"
 
 on:
+  pull_request:
   workflow_dispatch:
   workflow_call:
     # TODO: Deprecate these as we move to helm
@@ -51,7 +52,6 @@ jobs:
           password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
       - name: "Install Dependencies (npm ci)"
-        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         run: |
           cd linced-*
           npm ci
@@ -68,8 +68,23 @@ jobs:
             staging:${{secrets.STAGING_APP_FQDN}}
             production:${{secrets.PRODUCTION_APP_FQDN}}
 
+      - name: "Lint JavaScript"
+        if: contains(fromJson('["linced-app"]'), github.event.repository.name)
+        run: |
+          cd linced-*
+          npm run lint:js
+
+      - name: "Lint Handlebar Templates"
+        if: contains(fromJson('["linced-app"]'), github.event.repository.name)
+        run: |
+          cd linced-*
+          npm run lint:hbs
+
       # TODO: Get working tests one day
-      # - run: npm test
+#      - name: "Run Ember Tests"
+#        run: |
+#          cd linced-*
+#          npm run test
 
       - name: "Ember CLI Install"
         run: |
