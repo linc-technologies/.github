@@ -1,7 +1,6 @@
 name: "Go"
 
 on:
-  workflow_dispatch:
   workflow_call:
 
 env:

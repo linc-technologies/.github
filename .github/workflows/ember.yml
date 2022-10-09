@@ -1,8 +1,6 @@
 name: "Ember"
 
 on:
-  pull_request:
-  workflow_dispatch:
   workflow_call:
     # TODO: Deprecate these as we move to helm
     inputs:
