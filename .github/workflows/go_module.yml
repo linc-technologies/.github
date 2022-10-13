@@ -20,6 +20,10 @@ jobs:
           go-version: '1.18' # The Go version to download (if necessary) and use.
           cache: true
 
+      - name: "Format"
+        id: format
+        run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
+
       - name: "Git HTTPS"
         id: git_https
         uses: linc-technologies/.github/.github/actions/git_http@master
