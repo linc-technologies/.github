@@ -25,7 +25,7 @@ jobs:
 
       - name: "Format"
         id: format
-        run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
+        run: if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
       - name: "Lint"
         # TODO: Expand to the other modules once proven / rectified
