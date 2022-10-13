@@ -24,7 +24,7 @@ jobs:
           cache: true
 
       - name: "Format"
-        # TODO: Exapand to the other modules once proven / rectified
+        # TODO: Expand to the other modules once proven / rectified
         id: format
         run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
