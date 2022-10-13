@@ -94,7 +94,7 @@ jobs:
 
       - name: "Install Kubectl"
         id: install_kubectl
-        uses: azure/setup-kubectl@v2.0
+        uses: azure/setup-kubectl@v3.0
         with:
           version: 'v1.22.6'
 
