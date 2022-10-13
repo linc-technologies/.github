@@ -7,6 +7,9 @@ jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ "1.18", "1.19" ]
     steps:
 
       - name: "Checkout"
@@ -17,12 +20,20 @@ jobs:
         id: setup_go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.18' # The Go version to download (if necessary) and use.
+          go-version: matrix.go # The Go version to download (if necessary) and use.
           cache: true
 
       - name: "Format"
+        # TODO: Exapand to the other modules once proven / rectified
+        if: github.event.repository.name == 'go-wonde'
         id: format
         run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
+
+      - name: "Lint"
+        id: lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
 
       - name: "Git HTTPS"
         id: git_https
@@ -32,7 +43,7 @@ jobs:
 
       - name: "Setup Mongo"
         id: setup_mongo
-        if: github.event.repository.name != 'finance'
+        if: github.event.repository.name == 'go-helpers'
         uses: linc-technologies/.github/.github/actions/service_mongo@master
 
       - name: "Go Test"
