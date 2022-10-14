@@ -93,7 +93,7 @@ runs:
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "Build failed on ${{ inputs.matrix != '' && inputs.matrix}} ${{ inputs.steps }}."
+                      "text": "Build failed on the ${{ inputs.matrix != '' && format('matrix value {0},', inputs.matrix) }} ${{ inputs.steps }} step."
                     },
                     "accessory": {
                       "type": "image",
