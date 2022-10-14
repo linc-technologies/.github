@@ -51,7 +51,7 @@ runs:
                     },
                     "accessory": {
                       "type": "image",
-                      "image_url": "https://popcat.click/twitter-card.jpg'",
+                      "image_url": "https://popcat.click/twitter-card.jpg",
                       "alt_text": "Nice!"
                     }
                   },
