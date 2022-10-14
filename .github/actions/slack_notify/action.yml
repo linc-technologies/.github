@@ -12,14 +12,20 @@ inputs:
     required: true
   image_tag:
     description: "An associated image tag with which to report back to Slack."
-    required: true
+    required: false
+  steps:
+    description: "An array of step ids that failed."
+    required: false
+  matrix:
+    description: "The value of matrix.*, if the step is being ran for multiple values. This is to differentiate the output."
+    required: false
 runs:
   using: "composite"
   steps:
 
     - name: "Parse steps"
       if: always()
-      run: cat "${{ steps }}" | jq 'with_entries(select(.value.conclusion=="failure")) | keys'
+      run: cat "${{ toJSON(steps) }}" | jq 'with_entries(select(.value.conclusion=="failure")) | keys'
       shell: bash
 #    - name: "Build Notification"
 #      if: inputs.event == 'build'
