@@ -24,8 +24,8 @@ runs:
   steps:
 
 
-    - name: "Build Notification"
-      if: inputs.event == 'build'
+    - name: "Build Success"
+      if: ${{ inputs.event == 'build' && inputs.success == 'true' }}
       uses: slackapi/slack-github-action@v1.19.0
       with:
         channel-id: 'G3184HDT6' # CICD
@@ -33,13 +33,13 @@ runs:
           {
             "attachments": [
               {
-                "color": "${{ inputs.success == 'true' && '#2eb886' || '#a30200' }}",
+                "color": "#2eb886",
                 "blocks": [
                   {
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} ${{ inputs.success == 'true' && 'successful' || 'failed' }}! ${{ inputs.success == 'true' && ':ok_hand:' || ':scream::cry:' }}"
+                      "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} successful! :ok_hand:"
                     }
                   },
                   { "type": "divider" },
@@ -47,12 +47,12 @@ runs:
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "${{ inputs.success == 'true' && 'Build passed!' || 'Build failed on ${{ inputs.steps }}' }}"
+                      "text": ${{ toJSON(github.event.head_commit.message) || "No commit message" }}
                     },
                     "accessory": {
                       "type": "image",
-                      "image_url": "${{ inputs.success == 'true' && 'https://popcat.click/twitter-card.jpg' || 'https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg' }}",
-                      "alt_text": "${{ inputs.success == 'true' && 'Nice!' || 'Oof.' }}"
+                      "image_url": "https://popcat.click/twitter-card.jpg'",
+                      "alt_text": "Nice!"
                     }
                   },
                   {
@@ -70,37 +70,76 @@ runs:
         SLACK_WEBHOOK_URL: ${{ inputs.webhook_url }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
-#    - name: "Deployment Notification"
-#      if: inputs.event == 'deploy'
-#      uses: slackapi/slack-github-action@v1.19.0
-#      with:
-#        channel-id: 'G3184HDT6' # CICD
-#        payload: |
-#          {
-#            "attachments": [
-#              {
-#                "color": "${{ inputs.success == 'true' && '#2eb886' || '#a30200' }}",
-#                "blocks": [
-#                  {
-#                    "type": "section",
-#                    "text": {
-#                      "type": "mrkdwn",
-#                      "text": "*${{ inputs.success == 'true' && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
-#                    }
-#                  },
-#                  { "type": "divider" },
-#                  {
-#                    "type": "section",
-#                    "text": {
-#                      "type": "mrkdwn",
-#                      "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{inputs.image_tag}} to *${{github.ref_name}}* ${{ inputs.success == 'true' && 'successful' || 'failed' }}! ${{ inputs.success == 'true' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
-#                    }
-#                  }
-#                ]
-#              }
-#            ]
-#          }
-#      env:
-#        SLACK_WEBHOOK_URL: ${{ inputs.webhook_url }}
-#        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-#
+    - name: "Build Failure"
+      if: ${{ inputs.event == 'build' && inputs.success != 'true' }}
+      uses: slackapi/slack-github-action@v1.19.0
+      with:
+        channel-id: 'G3184HDT6' # CICD
+        payload: |
+          {
+            "attachments": [
+              {
+                "color": "#a30200",
+                "blocks": [
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "*${{github.event.repository.name}}*: Build <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> by ${{github.actor}} failed! :scream::cry:"
+                    }
+                  },
+                  { "type": "divider" },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "Build failed on ${{ inputs.matrix != '' && inputs.matrix}} ${{ inputs.steps }}."
+                    },
+                    "accessory": {
+                      "type": "image",
+                      "image_url": "https://www.meme-arsenal.com/memes/aaf82c28cdb84f5ab79dd8eb460c1d11.jpg",
+                      "alt_text": "Oof."
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.webhook_url }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+    - name: "Deployment Notification"
+      if: inputs.event == 'deploy'
+      uses: slackapi/slack-github-action@v1.19.0
+      with:
+        channel-id: 'G3184HDT6' # CICD
+        payload: |
+          {
+            "attachments": [
+              {
+                "color": "${{ inputs.success == 'true' && '#2eb886' || '#a30200' }}",
+                "blocks": [
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "*${{ inputs.success == 'true' && 'Deployment Success' || 'Deployment Failure' }}: ${{github.event.repository.name}}*"
+                    }
+                  },
+                  { "type": "divider" },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "Deployment <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|#${{ github.run_number }}> of image ${{inputs.image_tag}} to *${{github.ref_name}}* ${{ inputs.success == 'true' && 'successful' || 'failed' }}! ${{ inputs.success == 'true' && ':kubernetes::100::peepo_clap:' || ':scream::pepetrashscared:' }}"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.webhook_url }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
