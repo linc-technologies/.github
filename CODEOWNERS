@@ -3,4 +3,8 @@
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-syntax
 
 # Default reviewers for all files
-*               @linc-technologies/devops
+*                               @linc-technologies/devops
+.github/workflows/cli*          @linc-technologies/backend
+.github/workflows/ember*        @linc-technologies/frontend
+.github/workflows/go*           @linc-technologies/backend
+.github/workflows/php*          @linc-technologies/php
