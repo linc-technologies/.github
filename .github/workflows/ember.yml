@@ -72,17 +72,17 @@ jobs:
             staging:${{secrets.STAGING_APP_FQDN}}
             production:${{secrets.PRODUCTION_APP_FQDN}}
 
-      - name: "Lint JavaScript"
-        id: lint_js
-        run: |
-          cd linced-*
-          npm run lint:js
+      #- name: "Lint JavaScript"
+      #  id: lint_js
+      #  run: |
+      #    cd linced-*
+      #    npm run lint:js
 
-      - name: "Lint Handlebar Templates"
-        id: lint_hbs
-        run: |
-          cd linced-*
-          npm run lint:hbs
+      #- name: "Lint Handlebar Templates"
+      #  id: lint_hbs
+      #  run: |
+      #    cd linced-*
+      #    npm run lint:hbs
 
       # TODO: Get working tests one day
 #      - name: "Run Ember Tests"
@@ -221,7 +221,7 @@ jobs:
     name: "Deploy"
     if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [ build ]
     steps:
       # In order to retrieve deployment config
       - name: "Checkout"
