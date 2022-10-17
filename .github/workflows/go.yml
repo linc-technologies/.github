@@ -18,7 +18,7 @@ jobs:
 
       - name: "Checkout"
         id: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: "Git HTTPS"
         id: git_https
@@ -124,7 +124,7 @@ jobs:
       # In order to retrieve deployment config
       - name: "Checkout"
         id: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: "Install Kubectl"
         id: install_kubectl
