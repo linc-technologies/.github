@@ -34,7 +34,7 @@ jobs:
 #          cache: true $ TODO: Throwing issues with repeat builds....
 
       - name: "Format"
-        if: ${{ if github.ref_name != production }}
+        if: ${{ if github.ref_name != 'production' }}
         id: format
         run: if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
