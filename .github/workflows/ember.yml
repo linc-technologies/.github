@@ -74,14 +74,12 @@ jobs:
 
       - name: "Lint JavaScript"
         id: lint_js
-        if: ${{ github.ref  != 'refs/heads/beta' }}
         run: |
           cd linced-*
           npm run lint:js
 
       - name: "Lint Handlebar Templates"
         id: lint_hbs
-        if: ${{ github.ref  != 'refs/heads/beta' }}
         run: |
           cd linced-*
           npm run lint:hbs
