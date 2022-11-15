@@ -103,9 +103,9 @@ jobs:
         env:
           BUILD: ${{ github.run_number }}
         run: |
-          echo "build_num=$(($BUILD+10000))"
-          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))"
-          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}"
+          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Kubernetes Auth (Dev AU East)"
