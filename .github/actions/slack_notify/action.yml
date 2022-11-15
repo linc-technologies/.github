@@ -18,7 +18,7 @@ runs:
   steps:
     - name: "Build Notification"
       if: inputs.event == 'build'
-      uses: slackapi/slack-github-action@v1.19.0
+      uses: slackapi/slack-github-action@v1.23.0
       with:
         channel-id: 'G3184HDT6' # CICD
         payload: |
@@ -64,7 +64,7 @@ runs:
 
     - name: "Deployment Notification"
       if: inputs.event == 'deploy'
-      uses: slackapi/slack-github-action@v1.19.0
+      uses: slackapi/slack-github-action@v1.23.0
       with:
         channel-id: 'G3184HDT6' # CICD
         payload: |

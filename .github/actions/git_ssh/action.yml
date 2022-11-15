@@ -9,7 +9,7 @@ runs:
   steps:
     - name: "SSH Keyscan"
       id: scan
-      run: echo "::set-output name=known_hosts::$(ssh-keyscan -t rsa github.com)"
+      run: echo "known_hosts=$(ssh-keyscan -t rsa github.com)" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: "SSH Key Install"

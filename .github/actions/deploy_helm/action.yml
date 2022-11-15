@@ -24,7 +24,7 @@ runs:
   steps:
 
     - name: "Setup Helm"
-      uses: azure/setup-helm@v1
+      uses: azure/setup-helm@v3
       with:
         version: '3.10.0'
 
