@@ -6,11 +6,11 @@ on:
       DEPLOYMENT:
         description: "The name of the Kubernetes deployment to deploy to, ex: app-app-deployment"
         type: string
-        required: true
+        required: false
       CONTAINER:
         description: "The name of the container within the Kubernetes deployment to patch, ex: app-app-deployment -c app-app"
         type: string
-        required: true
+        required: false
 
 env:
   CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
