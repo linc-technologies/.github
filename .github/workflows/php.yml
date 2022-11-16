@@ -138,7 +138,7 @@ jobs:
       # Step is repeated in order to apply change for fpm and nginx separately
       - name: "Kubernetes Deploy (website)"
         # TODO: Add if statement to control helm vs Kube
-        id: kubernetes_deploy
+        id: kubernetes_deploy_website
         if: github.ref_name == 'production'
         env:
           CONTAINER: ${{ inputs.CONTAINER }}-php
@@ -149,7 +149,7 @@ jobs:
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
       - name: "Kubernetes Deploy (nginx)"
-        id: kubernetes_deploy
+        id: kubernetes_deploy_nginx
         if: github.ref_name == 'production'
         env:
           CONTAINER: ${{ inputs.CONTAINER }}-nginx
