@@ -141,7 +141,7 @@ jobs:
         id: kubernetes_deploy
         if: github.ref_name == 'production'
         env:
-          CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
+          CONTAINER: ${{ inputs.CONTAINER }}-php
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
           IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
@@ -152,7 +152,7 @@ jobs:
         id: kubernetes_deploy
         if: github.ref_name == 'production'
         env:
-          CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
+          CONTAINER: ${{ inputs.CONTAINER }}-nginx
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
           IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
