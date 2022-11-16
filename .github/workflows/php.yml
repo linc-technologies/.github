@@ -1,8 +1,16 @@
 name: "PHP"
 
 on:
-  workflow_dispatch:
   workflow_call:
+    inputs:
+      DEPLOYMENT:
+        description: "The name of the Kubernetes deployment to deploy to, ex: app-app-deployment"
+        type: string
+        required: true
+      CONTAINER:
+        description: "The name of the container within the Kubernetes deployment to patch, ex: app-app-deployment -c app-app"
+        type: string
+        required: true
 
 env:
   CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
@@ -18,9 +26,11 @@ jobs:
     steps:
 
       - name: "Checkout"
-        uses: actions/checkout@v2
+        id: checkout
+        uses: actions/checkout@v3
 
       - name: "Login to ACR"
+        id: login_to_acr
         uses: docker/login-action@v2
         with:
           registry: linced.azurecr.io
@@ -28,37 +38,39 @@ jobs:
           password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
       - name: "Set up Docker Buildx"
+        id: set_up_docker_buildx
         uses: docker/setup-buildx-action@v2
 
       - name: "Export build tag"
-        id: tag
+        id: export_build_tag
         env:
           BUILD: ${{ github.run_number }}
         run: |
-          echo "::set-output name=build_num::$(($BUILD+10000))"
-          echo "::set-output name=image_tag_build::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))"
-          echo "::set-output name=image_tag_branch::${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}"
+          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
 
       - name: "Build and export to Docker"
+        id: build_and_export_to_docker
         uses: docker/build-push-action@v3
         if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
         id: push_build_tag
         with:
           context: .
           push: true
-          tags: ${{ steps.tag.outputs.image_tag_build }}
+          tags: ${{ steps.export_build_tag.outputs.image_tag_build }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
       - name: "Build and export to Docker (Environment Based)"
+        id: build_and_export_to_docker_environment_based
         uses: docker/build-push-action@v3
         if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
-        id: push_build_and_env_tag
         with:
           context: .
           push: true
           tags: |
-            ${{ steps.tag.outputs.image_tag_build }}
-            ${{ steps.tag.outputs.image_tag_branch }}
+            ${{ steps.export_build_tag.outputs.image_tag_build }}
+            ${{ steps.export_build_tag.outputs.image_tag_branch }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
       - name: "Slack Notify"
@@ -82,21 +94,25 @@ jobs:
         uses: actions/checkout@v2
 
       - name: "Install Kubectl"
-        uses: azure/setup-kubectl@v2.0
+        id: install_kubectl
+        uses: azure/setup-kubectl@v3.0
         with:
           version: 'v1.22.6'
 
       # Export the build tag in the deployment stage as well as build because it's difficult to reconcile the image
       # build tag from build.matrix1.output vs build.matrix2.output.
       - name: "Export build tag"
-        id: tag
+        id: export_build_tag
         env:
           BUILD: ${{ github.run_number }}
         run: |
-          echo "::set-output name=build_num::$(($BUILD+10000))"
+          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
-      - name: "Configure Kubectl (development-au-east)"
+      - name: "Kubernetes Auth (Dev AU East)"
+        id: kubernetes_auth_dev_au_east
         if: ${{ github.ref  != 'refs/heads/production' }}
         uses: linc-technologies/.github/.github/actions/k8s_auth@master
         with:
@@ -105,7 +121,8 @@ jobs:
           cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
-      - name: "Configure Kubectl (production-au-east)"
+      - name: "Kubernetes Auth (Prod AU East)"
+        id: kubernetes_auth_prod_au_east
         if: ${{ github.ref == 'refs/heads/production' }}
         uses: linc-technologies/.github/.github/actions/k8s_auth@master
         with:
@@ -113,11 +130,36 @@ jobs:
           token: ${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
           cert: ${{ secrets.PRODUCTION_AU_EAST_AKS_CERT }}
 
-      # Showcase the client and server Kubectl versions
-      - name: "Kubectl Version (Client & Server)"
+      - name: "Kubectl Version"
+        id: kubectl_version
         run: kubectl version
 
+      # Deploy specific container revisions based on workflow inputs
+      # Step is repeated in order to apply change for fpm and nginx separately
+      - name: "Kubernetes Deploy (website)"
+        # TODO: Add if statement to control helm vs Kube
+        id: kubernetes_deploy
+        env:
+          CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
+          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
+        run: |
+          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
+      - name: "Kubernetes Deploy (nginx)"
+        id: kubernetes_deploy
+        env:
+          CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
+          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
+        run: |
+          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
+
       - name: "Helm Deploy"
+        # TODO: Add if statement to control helm vs Kube
         id: helm
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         with:

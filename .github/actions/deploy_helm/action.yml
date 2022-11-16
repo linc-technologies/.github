@@ -23,12 +23,16 @@ runs:
   using: "composite"
   steps:
 
+    - name: "Setup Helm"
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.10.0'
+
     - name: "Helm Deploy"
       run: |
         cd ./deployments/
         helm registry login linced.azurecr.io --username ${{ inputs.oci_user }} --password ${{ inputs.oci_pass }}
-        helm pull oci://linced.azurecr.io/helm/${{ inputs.chart }}-chart 
-        helm upgrade -i ${{ inputs.release }} ./${{ inputs.chart }}-chart-* \
+        helm upgrade -i ${{ inputs.release }} oci://linced.azurecr.io/helm/${{ inputs.chart }}-chart \
           --namespace ${{ inputs.namespace }} \
           -f ./values.${{ inputs.namespace }}.yaml \
           --set image.tag=${{ inputs.tag }} \
