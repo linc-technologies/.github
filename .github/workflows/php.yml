@@ -139,6 +139,7 @@ jobs:
       - name: "Kubernetes Deploy (website)"
         # TODO: Add if statement to control helm vs Kube
         id: kubernetes_deploy
+        if: github.ref_name == 'production'
         env:
           CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
@@ -149,6 +150,7 @@ jobs:
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
       - name: "Kubernetes Deploy (nginx)"
         id: kubernetes_deploy
+        if: github.ref_name == 'production'
         env:
           CONTAINER: ${{ inputs.CONTAINER }}-${{ matrix.container }}
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
@@ -161,6 +163,7 @@ jobs:
       - name: "Helm Deploy"
         # TODO: Add if statement to control helm vs Kube
         id: helm
+        if: github.ref_name == 'development' || github.ref_name == 'staging'
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         with:
           chart: "php"
