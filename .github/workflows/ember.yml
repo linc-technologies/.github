@@ -275,7 +275,7 @@ jobs:
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         # TODO: Adjust this filter for Staging, and Production when ready to cutover.
         # TODO: Only testing the admin app currently
-        if: ${{ github.ref_name == 'development' && github.event.repository.name == 'linced-admin' }}
+        if: ${{ github.ref_name == 'development' }}
         with:
           chart: "app"
           release: ${{ steps.release_name.outputs.release_name }}
