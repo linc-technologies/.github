@@ -158,7 +158,7 @@ jobs:
         # NOTE: The marketing website uses helm for all environments. Everything else only uses it in dev and staging
       - name: "Helm Deploy"
         id: helm_deploy
-        if: github.event.repository.name == 'linc-ed-com-website' || github.ref_name == 'development' || github.ref_name == 'staging'
+        if: github.event.repository.name == 'linc-ed-com-website' || github.event.repository.name == 'our-hero-com-website' || github.ref_name == 'development' || github.ref_name == 'staging'
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         with:
           chart: "php"
