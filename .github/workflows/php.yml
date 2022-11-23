@@ -155,12 +155,24 @@ jobs:
         id: kubectl_version
         run: kubectl version
 
+        # NOTE: The marketing website uses helm for all environments. Everything else only uses it in dev and staging
+      - name: "Helm Deploy"
+        id: helm_deploy
+        if: github.event.repository.name == 'linc-ed-com-website' || github.ref_name == 'development' || github.ref_name == 'staging'
+        uses: linc-technologies/.github/.github/actions/deploy_helm@master
+        with:
+          chart: "php"
+          release: ${{ github.event.repository.name }}
+          namespace: ${{ github.ref_name }}
+          tag: ${{ steps.tag.outputs.build_num }}
+          oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
+          oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+
       # Deploy specific container revisions based on workflow inputs
       # Step is repeated in order to apply change for fpm and nginx separately
       - name: "Kubernetes Deploy (website)"
-        # TODO: Add if statement to control helm vs Kube
         id: kubernetes_deploy_website
-        if: github.event.repository.name != 'linc-ed-com-website' && github.ref_name == 'production'
+        if: steps.helm_deploy.conclusion == 'skipped'
         env:
           CONTAINER: ${{ inputs.CONTAINER }}-php
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
@@ -171,7 +183,7 @@ jobs:
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
       - name: "Kubernetes Deploy (nginx)"
         id: kubernetes_deploy_nginx
-        if: github.event.repository.name != 'linc-ed-com-website' && github.ref_name == 'production'
+        if: steps.helm_deploy.conclusion == 'skipped'
         env:
           CONTAINER: ${{ inputs.CONTAINER }}-nginx
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
@@ -180,19 +192,6 @@ jobs:
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
-
-      - name: "Helm Deploy"
-        # TODO: Add if statement to control helm vs Kube
-        id: helm
-        if: github.event.repository.name == 'linc-ed-com-website' || github.ref_name == 'development' || github.ref_name == 'staging'
-        uses: linc-technologies/.github/.github/actions/deploy_helm@master
-        with:
-          chart: "php"
-          release: ${{ github.event.repository.name }}
-          namespace: ${{ github.ref_name }}
-          tag: ${{ steps.tag.outputs.build_num }}
-          oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
-          oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
       - name: "Slack Notify"
         if: success() || failure()
