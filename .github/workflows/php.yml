@@ -122,14 +122,27 @@ jobs:
 
       # Export the build tag in the deployment stage as well as build because it's difficult to reconcile the image
       # build tag from build.matrix1.output vs build.matrix2.output.
+      # If we receive a container name
+      # TODO: Deprecate when on helm
       - name: "Export build tag"
-        id: export_build_tag
+        id: export_build_tag_container_provided
+        if: github.event.inputs.CONTAINER != ''
         env:
           BUILD: ${{ github.run_number }}
         run: |
           echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
           echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
           echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
+      # If we do not receive a container name, use the repo name
+      - name: "Export build tag"
+        id: export_build_tag
+        if: github.event.inputs.CONTAINER == ''
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Kubernetes Auth (Dev AU East)"
