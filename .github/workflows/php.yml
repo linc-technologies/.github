@@ -181,6 +181,7 @@ jobs:
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
+      # TODO: Deprecate when on helm
       # Deploy specific container revisions based on workflow inputs
       # Step is repeated in order to apply change for fpm and nginx separately
       - name: "Kubernetes Deploy (website)"
@@ -190,7 +191,7 @@ jobs:
           CONTAINER: ${{ inputs.CONTAINER }}-php
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
+          IMAGE: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
@@ -201,7 +202,7 @@ jobs:
           CONTAINER: ${{ inputs.CONTAINER }}-nginx
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
+          IMAGE: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
