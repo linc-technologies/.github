@@ -122,14 +122,27 @@ jobs:
 
       # Export the build tag in the deployment stage as well as build because it's difficult to reconcile the image
       # build tag from build.matrix1.output vs build.matrix2.output.
+      # If we receive a container name
+      # TODO: Deprecate when on helm
       - name: "Export build tag"
-        id: export_build_tag
+        id: export_build_tag_container_provided
+        if: github.event.inputs.CONTAINER != ''
         env:
           BUILD: ${{ github.run_number }}
         run: |
           echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
           echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
           echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
+      # If we do not receive a container name, use the repo name
+      - name: "Export build tag"
+        id: export_build_tag
+        if: github.event.inputs.CONTAINER == ''
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
+          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Kubernetes Auth (Dev AU East)"
@@ -164,10 +177,11 @@ jobs:
           chart: "php"
           release: ${{ github.event.repository.name }}
           namespace: ${{ github.ref_name }}
-          tag: ${{ steps.tag.outputs.build_num }}
+          tag: ${{ steps.export_build_tag.outputs.build_num }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
+      # TODO: Deprecate when on helm
       # Deploy specific container revisions based on workflow inputs
       # Step is repeated in order to apply change for fpm and nginx separately
       - name: "Kubernetes Deploy (website)"
@@ -177,7 +191,7 @@ jobs:
           CONTAINER: ${{ inputs.CONTAINER }}-php
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
+          IMAGE: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
@@ -188,7 +202,7 @@ jobs:
           CONTAINER: ${{ inputs.CONTAINER }}-nginx
           DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ steps.export_build_tag.outputs.image_tag_build }}
+          IMAGE: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
         run: |
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
