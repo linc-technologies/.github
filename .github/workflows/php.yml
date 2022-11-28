@@ -177,7 +177,7 @@ jobs:
           chart: "php"
           release: ${{ github.event.repository.name }}
           namespace: ${{ github.ref_name }}
-          tag: ${{ steps.tag.outputs.build_num }}
+          tag: ${{ steps.export_build_tag.outputs.build_num }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
