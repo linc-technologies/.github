@@ -34,7 +34,6 @@ jobs:
 
       - name: "Export build tag"
         id: export_build_tag
-        if: github.event.inputs.CONTAINER == ''
         env:
           BUILD: ${{ github.run_number }}
         run: |
@@ -114,7 +113,13 @@ jobs:
         id: kubectl_version
         run: kubectl version
 
-        # NOTE: The marketing website uses helm for all environments. Everything else only uses it in dev and staging
+      - name: "Export build tag"
+        id: export_build_tag
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
+
       - name: "Helm Deploy"
         id: helm_deploy
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
