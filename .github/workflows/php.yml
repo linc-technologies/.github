@@ -94,14 +94,14 @@ jobs:
             ${{ steps.export_build_tag.outputs.image_tag_branch }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
-      - name: "Slack Notify"
-        if: success() || failure()
-        uses: linc-technologies/.github/.github/actions/slack_notify@master
-        continue-on-error: true
-        with:
-          event: build
-          success: ${{ !contains(steps.*.outcome, 'failure') }}
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+#      - name: "Slack Notify"
+#        if: success() || failure()
+#        uses: linc-technologies/.github/.github/actions/slack_notify@master
+#        continue-on-error: true
+#        with:
+#          event: build
+#          success: ${{ !contains(steps.*.outcome, 'failure') }}
+#          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   deploy:
     name: "Deploy"
@@ -208,11 +208,11 @@ jobs:
           echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
           kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
 
-      - name: "Slack Notify"
-        if: success() || failure()
-        uses: linc-technologies/.github/.github/actions/slack_notify@master
-        continue-on-error: true
-        with:
-          event: deploy
-          success: ${{ !contains(steps.*.outcome, 'failure') }}
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+#      - name: "Slack Notify"
+#        if: success() || failure()
+#        uses: linc-technologies/.github/.github/actions/slack_notify@master
+#        continue-on-error: true
+#        with:
+#          event: deploy
+#          success: ${{ !contains(steps.*.outcome, 'failure') }}
+#          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
