@@ -12,13 +12,12 @@ on:
         type: string
         required: false
 
-env:
-  CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
-
 jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
+    outputs:
+      build_number: ${{ steps.export_build_tag.outputs.build_number }}
     strategy:
       fail-fast: false
       matrix:
@@ -41,46 +40,9 @@ jobs:
         id: set_up_docker_buildx
         uses: docker/setup-buildx-action@v2
 
-      # If we receive a container name
-      # TODO: Deprecate when on helm
-      - name: "Export build tag"
-        id: export_build_tag_container_provided
-        if: github.event.inputs.CONTAINER != ''
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
-      - name: "Build and export to Docker"
-        id: build_and_export_to_docker_container_provided
-        uses: docker/build-push-action@v3
-        if: github.event.inputs.CONTAINER != '' && !contains(fromJson('["development", "staging", "production"]'), github.ref_name)
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
-          file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
-
-      # If we do not receive a container name, use the repo name
-      - name: "Export build tag"
+      - name: "Export Build Tag"
         id: export_build_tag
-        if: github.event.inputs.CONTAINER == ''
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
-      - name: "Build and export to Docker"
-        id: build_and_export_to_docker
-        uses: docker/build-push-action@v3
-        if: github.event.inputs.CONTAINER == '' && !contains(fromJson('["development", "staging", "production"]'), github.ref_name)
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.export_build_tag.outputs.image_tag_build }}
-          file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
+        uses: linc-technologies/.github/.github/actions/build_label@master
 
       - name: "Build and export to Docker (Environment Based)"
         id: build_and_export_to_docker_environment_based
@@ -90,8 +52,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.export_build_tag.outputs.image_tag_build }}
-            ${{ steps.export_build_tag.outputs.image_tag_branch }}
+            ${{ steps.export_build_tag.outputs.docker_build_number }}
+            ${{ steps.export_build_tag.outputs.docker_build_branch }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
       - name: "Slack Notify"
@@ -121,30 +83,6 @@ jobs:
         with:
           version: 'v1.22.6'
 
-      # Export the build tag in the deployment stage as well as build because it's difficult to reconcile the image
-      # build tag from build.matrix1.output vs build.matrix2.output.
-      # If we receive a container name
-      # TODO: Deprecate when on helm
-      - name: "Export build tag"
-        id: export_build_tag_container_provided
-        if: github.event.inputs.CONTAINER != ''
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ inputs.CONTAINER }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
-      # If we do not receive a container name, use the repo name
-      - name: "Export build tag"
-        id: export_build_tag
-        if: github.event.inputs.CONTAINER == ''
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
-
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Configure Kubectl (development-au-east)"
         id: configure_kubectl_development_au_east
@@ -169,44 +107,16 @@ jobs:
         id: kubectl_version
         run: kubectl version
 
-        # NOTE: The marketing website uses helm for all environments. Everything else only uses it in dev and staging
       - name: "Helm Deploy"
         id: helm_deploy
-        if: github.event.repository.name == 'linc-ed-com-website' || github.event.repository.name == 'our-hero-com-website' || github.ref_name == 'development' || github.ref_name == 'staging'
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         with:
           chart: "php"
           release: ${{ github.event.repository.name }}
           namespace: ${{ github.ref_name }}
-          tag: ${{ steps.export_build_tag.outputs.build_num }}
+          tag: ${{ needs.build.outputs.build_number }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
-
-      # TODO: Deprecate when on helm
-      # Deploy specific container revisions based on workflow inputs
-      # Step is repeated in order to apply change for fpm and nginx separately
-      - name: "Kubernetes Deploy (website)"
-        id: kubernetes_deploy_website
-        if: steps.helm_deploy.conclusion == 'skipped'
-        env:
-          CONTAINER: ${{ inputs.CONTAINER }}-php
-          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
-          NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
-        run: |
-          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
-          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
-      - name: "Kubernetes Deploy (nginx)"
-        id: kubernetes_deploy_nginx
-        if: steps.helm_deploy.conclusion == 'skipped'
-        env:
-          CONTAINER: ${{ inputs.CONTAINER }}-nginx
-          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
-          NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
-        run: |
-          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
-          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
 
       - name: "Slack Notify"
         if: success() || failure()
