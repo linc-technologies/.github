@@ -3,13 +3,12 @@ name: "PHP"
 on:
   workflow_call:
 
-env:
-  CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
-
 jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
+    outputs:
+      build_number: ${{ steps.export_build_tag.outputs.build_number }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,24 +31,9 @@ jobs:
         id: set_up_docker_buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: "Export build tag"
+      - name: "Export Build Tag"
         id: export_build_tag
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
-
-      - name: "Build and export to Docker"
-        id: build_and_export_to_docker
-        uses: docker/build-push-action@v3
-        if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.export_build_tag.outputs.image_tag_build }}
-          file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
+        uses: linc-technologies/.github/.github/actions/build_label@master
 
       - name: "Build and export to Docker (Environment Based)"
         id: build_and_export_to_docker_environment_based
@@ -59,8 +43,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.export_build_tag.outputs.image_tag_build }}
-            ${{ steps.export_build_tag.outputs.image_tag_branch }}
+            ${{ steps.export_build_tag.outputs.docker_build_number }}
+            ${{ steps.export_build_tag.outputs.docker_build_branch }}
           file: ${{ matrix.container == 'php' && 'Dockerfile' || 'Dockerfile.nginx' }}
 
       - name: "Slack Notify"
@@ -117,13 +101,6 @@ jobs:
         id: kubectl_version
         run: kubectl version
 
-      - name: "Export build tag"
-        id: export_build_tag
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
-
       - name: "Helm Deploy"
         id: helm_deploy
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
@@ -131,7 +108,7 @@ jobs:
           chart: "php"
           release: ${{ github.event.repository.name }}
           namespace: ${{ github.ref_name }}
-          tag: ${{ steps.export_build_tag.outputs.build_num }}
+          tag: ${{ needs.build.outputs.build_number }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
