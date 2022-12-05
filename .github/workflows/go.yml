@@ -139,7 +139,7 @@ jobs:
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Configure Kubectl (development-au-east)"
         id: configure_kubectl_development_au_east
-        if: ${{ github.ref  != 'refs/heads/production' }}
+        if: ${{ github.ref != 'refs/heads/production' }}
         uses: linc-technologies/.github/.github/actions/k8s_auth@master
         with:
           server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
