@@ -146,9 +146,9 @@ jobs:
           echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}-${{matrix.container}}:${{github.ref_name}}" >> $GITHUB_OUTPUT
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
-      - name: "Kubernetes Auth (Dev AU East)"
-        id: kubernetes_auth_dev_au_east
-        if: ${{ github.ref  != 'refs/heads/production' }}
+      - name: "Configure Kubectl (development-au-east)"
+        id: configure_kubectl_development_au_east
+        if: ${{ github.ref != 'refs/heads/production' }}
         uses: linc-technologies/.github/.github/actions/k8s_auth@master
         with:
           server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
@@ -156,8 +156,8 @@ jobs:
           cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
-      - name: "Kubernetes Auth (Prod AU East)"
-        id: kubernetes_auth_prod_au_east
+      - name: "Configure Kubectl (production-au-east)"
+        id: configure_kubectl_production_au_east
         if: ${{ github.ref == 'refs/heads/production' }}
         uses: linc-technologies/.github/.github/actions/k8s_auth@master
         with:
