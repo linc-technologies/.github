@@ -189,8 +189,8 @@ jobs:
         id: kubernetes_deploy_website
         if: steps.helm_deploy.conclusion == 'skipped'
         env:
-          CONTAINER: ${{ inputs.CONTAINER }}-php
-          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
+          CONTAINER: print-php
+          DEPLOYMENT: print-deployment
           NAMESPACE: ${{ github.ref_name }}
           IMAGE: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
         run: |
@@ -200,8 +200,8 @@ jobs:
         id: kubernetes_deploy_nginx
         if: steps.helm_deploy.conclusion == 'skipped'
         env:
-          CONTAINER: ${{ inputs.CONTAINER }}-nginx
-          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
+          CONTAINER: print-nginx
+          DEPLOYMENT: print-deployment
           NAMESPACE: ${{ github.ref_name }}
           IMAGE: ${{ steps.export_build_tag_container_provided.outputs.image_tag_build }}
         run: |
