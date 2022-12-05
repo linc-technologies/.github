@@ -45,7 +45,7 @@ jobs:
       - name: "Build and export to Docker"
         id: build_and_export_to_docker
         uses: docker/build-push-action@v3
-        if: !contains(fromJson('["development", "staging", "production"]'), github.ref_name)
+        if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
         with:
           context: .
           push: true
