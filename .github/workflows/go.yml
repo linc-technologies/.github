@@ -164,8 +164,8 @@ jobs:
       - name: "Helm Deploy"
         id: helm_deploy
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
-        # TODO: Adjust this filter for Staging, and Production when ready to cutover.
-        if: ${{ github.ref_name == 'development' }}
+        # TODO: Remove once fully cutover
+        if: ${{ github.ref_name == 'development' || github.ref_name == 'staging' }}
         with:
           chart: "service"
           release: ${{ github.event.repository.name }}
