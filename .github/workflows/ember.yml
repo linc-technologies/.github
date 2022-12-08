@@ -272,6 +272,12 @@ jobs:
         id: release_name
         run: |
           NAME=$(echo "${{ github.event.repository.name }}" | sed -e 's/linced-//g')
+          
+          # Accomodate for service and app with the same name
+          if [ "$repo" == "linced-enrolment" ]; then 
+            NAME="enrol"; 
+          fi
+          
           echo "release_name=${NAME}" >> $GITHUB_OUTPUT
 
       - name: "Helm Deploy"
