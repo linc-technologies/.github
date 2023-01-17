@@ -182,8 +182,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.export_build_tag.outputs.image_tag_build }}
-            ${{ steps.export_build_tag.outputs.image_tag_branch }}
+            ${{ steps.export_build_tag.outputs.docker_build_number }}
+            ${{ steps.export_build_tag.outputs.docker_build_branch }}
           file: Dockerfile.drone
 
       - name: "Slack Notify"
