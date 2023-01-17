@@ -1,5 +1,5 @@
-name: "Helm Deploy"
-description: "Install or Upgrade a Helm release in Kubernetes."
+name: "Export Build Label"
+description: "Generate standardised build labels for tagging artifacts. Labels are consumable as outputs."
 inputs:
   matrix:
     description: |
@@ -18,7 +18,7 @@ outputs:
     value: ${{ steps.export.outputs.docker_build_number }}
   docker_build_branch:
     description: "A full Docker image tag based on branch."
-    value: ${{ steps.export.outputs.docker_build_number }}
+    value: ${{ steps.export.outputs.docker_build_branch }}
 runs:
   using: "composite"
   steps:
