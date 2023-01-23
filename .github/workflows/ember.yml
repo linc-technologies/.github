@@ -284,7 +284,7 @@ jobs:
         id: helm_deploy
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         # TODO: Remove once fully cutover.
-        if: ${{ github.ref_name == 'development' || github.ref_name == 'staging' }}
+        if: ${{ github.ref_name == 'development' || github.ref_name == 'staging' || github.event.repository.name == 'linced-admin' }}
         with:
           chart: "app"
           release: ${{ steps.release_name.outputs.release_name }}
