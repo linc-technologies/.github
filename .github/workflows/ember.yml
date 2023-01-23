@@ -283,6 +283,8 @@ jobs:
       - name: "Helm Deploy"
         id: helm_deploy
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
+        # TODO: Remove once fully cutover.
+        if: ${{ github.ref_name == 'development' || github.ref_name == 'staging' }}
         with:
           chart: "app"
           release: ${{ steps.release_name.outputs.release_name }}
@@ -290,6 +292,21 @@ jobs:
           tag: ${{ needs.build.outputs.build_num }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
+
+      # Deploy to other environments if we did not deploy with Helm (Staging, Production) via k8s Deployment patch
+      # TODO: Remove once fully cutover
+      # Deploy specific container revision based on workflow inputs
+      - name: "Kubernetes Deploy"
+        id: kubernetes_deploy
+        if: steps.helm_deploy.conclusion == 'skipped'
+        env:
+          CONTAINER: ${{ inputs.CONTAINER }}
+          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+        run: |
+          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
+          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
 
       - name: "Slack Notify"
         if: success() || failure()
