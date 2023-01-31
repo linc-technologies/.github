@@ -86,7 +86,7 @@ jobs:
 
       - name: "Build and export to Docker"
         id: build_and_export_to_docker
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         if: ${{ !contains(fromJson('["development", "staging", "production"]'), github.ref_name) }}
         with:
           context: .
@@ -96,7 +96,7 @@ jobs:
 
       - name: "Build and export to Docker (Environment Based)"
         id: build_and_export_to_docker_environment_based
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         if: contains(fromJson('["development", "staging", "production"]'), github.ref_name)
         with:
           context: .
