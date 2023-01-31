@@ -38,8 +38,20 @@ jobs:
         id: format
         run: if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
+      # Publish symbols for development build branches in order to
+      - name: "Build (DWARF)"
+        id: build_debug
+        if: ${{ github.ref_name == 'development' }}
+        env:
+          GOPRIVATE: github.com/linc-technologies
+          CGO_ENABLED: 0
+        run: |
+          cd ./cmd/${{ github.event.repository.name }}/
+          go build -tags internal -v
+
       - name: "Build"
         id: build
+        if: ${{ github.ref_name != 'development' }}
         env:
           GOPRIVATE: github.com/linc-technologies
           CGO_ENABLED: 0
