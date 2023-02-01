@@ -1,6 +1,8 @@
 # GitHub Code Owners
 # More info about this file can be found in the GitHub documentation:
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-syntax
-
-# Default reviewers for all files
-*                               @hero-david
+*                               @linc-technologies/devops
+.github/workflows/cli*          @linc-technologies/devops @linc-technologies/backend
+.github/workflows/ember*        @linc-technologies/devops @linc-technologies/frontend
+.github/workflows/go*           @linc-technologies/devops @linc-technologies/backend
+.github/workflows/php*          @linc-technologies/devops @linc-technologies/php
