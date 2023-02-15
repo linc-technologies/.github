@@ -34,6 +34,8 @@ jobs:
       - name: "Export Build Tag"
         id: export_build_tag
         uses: linc-technologies/.github/.github/actions/build_label@master
+        with:
+          matrix: ${{ matrix.container }}
 
       - name: "Build and export to Docker (Environment Based)"
         id: build_and_export_to_docker_environment_based
