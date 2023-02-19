@@ -1,0 +1,46 @@
+name: "Export Build Label"
+description: "Generate standardised build labels for tagging artifacts. Labels are consumable as outputs."
+inputs:
+  matrix:
+    description: |
+      If a value is passed in as the matrix parameter, the matrix value will be appended onto the repository name.
+      Eg, linc-ed/print-nginx, linc-ed/print-php
+    required: false
+    default: ""
+outputs:
+  build_number:
+    description: |
+      The build number to use as a tag for container images. This is incremented by 10_000 in order to 
+      avoid collisions with our previous build system (Drone CI).
+    value: ${{ steps.export.outputs.build_number }}
+  docker_build_number:
+    description: "A full Docker image tag based on build number."
+    value: ${{ steps.export.outputs.docker_build_number }}
+  docker_build_branch:
+    description: "A full Docker image tag based on branch."
+    value: ${{ steps.export.outputs.docker_build_branch }}
+runs:
+  using: "composite"
+  steps:
+
+    - name: "Export Build Tags"
+      id: export
+      env:
+        BUILD: ${{ github.run_number }}
+        BRANCH: ${{ github.ref_name }}
+        REPO: ${{ github.event.repository.name }}
+        MATRIX: ${{ inputs.matrix }}
+      run: |
+        # Export the build number plus 'safety buffer'
+        BUILD=$(($BUILD+10000))
+        echo "build_number=$BUILD" >> $GITHUB_OUTPUT
+        
+        # If we are given an extra snippet from a matrix build then append it to the registry name.
+        if [ -z "$MATRIX" ] ; then 
+          echo "docker_build_number=linced.azurecr.io/linc-ed/$REPO:$BUILD" >> $GITHUB_OUTPUT
+          echo "docker_build_branch=linced.azurecr.io/linc-ed/$REPO:$BRANCH" >> $GITHUB_OUTPUT
+        else 
+          echo "docker_build_number=linced.azurecr.io/linc-ed/$REPO-$MATRIX:$BUILD" >> $GITHUB_OUTPUT
+          echo "docker_build_branch=linced.azurecr.io/linc-ed/$REPO-$MATRIX:$BRANCH" >> $GITHUB_OUTPUT
+        fi
+      shell: bash

@@ -3,17 +3,12 @@ name: "Go"
 on:
   workflow_call:
 
-env:
-  CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
-
 jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
     outputs:
-      build_num: ${{ steps.export_build_tag.outputs.build_num }}
-      image_tag_build: ${{ steps.export_build_tag.outputs.image_tag_build }}
-      image_tag_branch: ${{ steps.export_build_tag.outputs.image_tag_branch }}
+      build_number: ${{ steps.export_build_tag.outputs.build_number }}
     steps:
 
       - name: "Checkout"
@@ -75,14 +70,9 @@ jobs:
           username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           password: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
-      - name: "Export build tag"
+      - name: "Export Build Tag"
         id: export_build_tag
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}" >> $GITHUB_OUTPUT
+        uses: linc-technologies/.github/.github/actions/build_label@master
 
       - name: "Build and export to Docker"
         id: build_and_export_to_docker
@@ -91,7 +81,7 @@ jobs:
         with:
           context: .
           push: false
-          tags: ${{ steps.export_build_tag.outputs.image_tag_build }}
+          tags: ${{ steps.export_build_tag.outputs.docker_build_number }}
           file: Dockerfile.drone
 
       - name: "Build and export to Docker (Environment Based)"
@@ -102,8 +92,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.export_build_tag.outputs.image_tag_build }}
-            ${{ steps.export_build_tag.outputs.image_tag_branch }}
+            ${{ steps.export_build_tag.outputs.docker_build_number }}
+            ${{ steps.export_build_tag.outputs.docker_build_branch }}
           file: Dockerfile.drone
 
       - name: "Slack Notify"
@@ -139,7 +129,7 @@ jobs:
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Configure Kubectl (development-au-east)"
         id: configure_kubectl_development_au_east
-        if: ${{ github.ref  != 'refs/heads/production' }}
+        if: ${{ github.ref != 'refs/heads/production' }}
         uses: linc-technologies/.github/.github/actions/k8s_auth@master
         with:
           server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
@@ -156,8 +146,7 @@ jobs:
           token: ${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
           cert: ${{ secrets.PRODUCTION_AU_EAST_AKS_CERT }}
 
-      # Showcase the client and server Kubectl versions
-      - name: "Kubectl Version (Client & Server)"
+      - name: "Kubectl Version"
         id: kubectl_version
         run: kubectl version
 
@@ -168,7 +157,7 @@ jobs:
           chart: "service"
           release: ${{ github.event.repository.name }}
           namespace: ${{ github.ref_name }}
-          tag: ${{ needs.build.outputs.build_num }}
+          tag: ${{ needs.build.outputs.build_number }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
