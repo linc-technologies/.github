@@ -56,5 +56,5 @@ jobs:
         continue-on-error: true
         with:
           event: build
-          success: ${{ !contains(steps.*.outcome, 'failure') }}
+          success: ${{ !contains(steps.*.conclusion, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -148,7 +148,10 @@ jobs:
       - name: "Add Previous Assets"
         id: add_previous_assets
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
-        continue-on-error: true
+        # Uncomment this when a new environment needs building and there is no pre-existing image to pull from
+        # continue-on-error: true
+        env:
+          CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
         run: |
           IMAGE_TAG="$CONTAINER_REGISTRY/${{ github.event.repository.name }}:${{ github.ref_name }}"
           docker pull $IMAGE_TAG
@@ -198,7 +201,7 @@ jobs:
         continue-on-error: true
         with:
           event: build
-          success: ${{ !contains(steps.*.outcome, 'failure') }}
+          success: ${{ !contains(steps.*.conclusion, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
 
@@ -276,5 +279,5 @@ jobs:
         continue-on-error: true
         with:
           event: deploy
-          success: ${{ !contains(steps.*.outcome, 'failure') }}
+          success: ${{ !contains(steps.*.conclusion, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
