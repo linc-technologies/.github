@@ -13,17 +13,12 @@ on:
         type: string
         required: true
 
-env:
-  CONTAINER_REGISTRY: linced.azurecr.io/linc-ed
-
 jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
     outputs:
-      build_num: ${{ steps.export_build_tag.outputs.build_num }}
-      image_tag_build: ${{ steps.export_build_tag.outputs.image_tag_build }}
-      image_tag_branch: ${{ steps.export_build_tag.outputs.image_tag_branch }}
+      build_number: ${{ steps.export_build_tag.outputs.build_number }}
     steps:
 
       - name: "Checkout"
@@ -175,25 +170,9 @@ jobs:
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
         uses: docker/setup-buildx-action@v2
 
-      - name: "Export build tag"
+      - name: "Export Build Tag"
         id: export_build_tag
-        if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
-        env:
-          BUILD: ${{ github.run_number }}
-        run: |
-          echo "build_num=$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_build=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:$(($BUILD+10000))" >> $GITHUB_OUTPUT
-          echo "image_tag_branch=${{env.CONTAINER_REGISTRY}}/${{ github.event.repository.name }}:${{github.ref_name}}" >> $GITHUB_OUTPUT
-
-#      - name: "Build and export to Docker"
-#        id: build_and_export_to_docker
-#        uses: docker/build-push-action@v4
-#        if: ${{ !contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name) }}
-#        with:
-#          context: .
-#          push: true
-#          tags: ${{ steps.export_build_tag.outputs.image_tag_build }}
-#          file: Dockerfile.drone
+        uses: linc-technologies/.github/.github/actions/build_label@master
 
       - name: "Build and export to Docker (Environmental Tags)"
         id: build_and_export_to_docker_environmental_tags
@@ -203,8 +182,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ steps.export_build_tag.outputs.image_tag_build }}
-            ${{ steps.export_build_tag.outputs.image_tag_branch }}
+            ${{ steps.export_build_tag.outputs.docker_build_number }}
+            ${{ steps.export_build_tag.outputs.docker_build_branch }}
           file: Dockerfile.drone
 
       - name: "Debug Steps Context"
@@ -245,30 +224,24 @@ jobs:
           version: 'v1.22.6'
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
-      - name: "Kubernetes Auth (Dev AU East)"
-        id: kubernetes_auth_dev_au_east
-        if: ${{ github.ref  != 'refs/heads/production' }}
-        run: |
-          kubectl config set-credentials default --token=${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
-          # If cert provided...
-          # kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
-          # If cert not provided
-          kubectl config set-cluster default --server=${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-context default --cluster=default --user=default
-          kubectl config use-context default
+      - name: "Configure Kubectl (development-au-east)"
+        id: configure_kubectl_development_au_east
+        if: ${{ github.ref != 'refs/heads/production' }}
+        uses: linc-technologies/.github/.github/actions/k8s_auth@master
+        with:
+          server: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.DEVELOPMENT_AU_EAST_AKS_CERT }}
 
       # If we're deploying from a production branch, configure Kubectl with Prod cluster secrets
-      - name: "Kubernetes Auth (Prod AU East)"
-        id: kubernetes_auth_prod_au_east
+      - name: "Configure Kubectl (production-au-east)"
+        id: configure_kubectl_production_au_east
         if: ${{ github.ref == 'refs/heads/production' }}
-        run: |
-          kubectl config set-credentials default --token=${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
-          # If cert provided...
-          # kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --certificate-authority=ca.crt
-          # If cert not provided
-          kubectl config set-cluster default --server=${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }} --insecure-skip-tls-verify=true
-          kubectl config set-context default --cluster=default --user=default
-          kubectl config use-context default
+        uses: linc-technologies/.github/.github/actions/k8s_auth@master
+        with:
+          server: ${{ secrets.PRODUCTION_AU_EAST_AKS_SERVER }}
+          token: ${{ secrets.PRODUCTION_AU_EAST_AKS_TOKEN }}
+          cert: ${{ secrets.PRODUCTION_AU_EAST_AKS_CERT }}
 
       - name: "Kubectl Version"
         id: kubectl_version
@@ -289,30 +262,13 @@ jobs:
       - name: "Helm Deploy"
         id: helm_deploy
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
-        # TODO: Remove once fully cutover.
-        if: ${{ github.ref_name == 'development' || github.ref_name == 'staging' || github.event.repository.name == 'linced-admin' }}
         with:
           chart: "app"
           release: ${{ steps.release_name.outputs.release_name }}
           namespace: ${{ github.ref_name }}
-          tag: ${{ needs.build.outputs.build_num }}
+          tag: ${{ needs.build.outputs.build_number }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
-
-      # Deploy to other environments if we did not deploy with Helm (Staging, Production) via k8s Deployment patch
-      # TODO: Remove once fully cutover
-      # Deploy specific container revision based on workflow inputs
-      - name: "Kubernetes Deploy"
-        id: kubernetes_deploy
-        if: steps.helm_deploy.conclusion == 'skipped'
-        env:
-          CONTAINER: ${{ inputs.CONTAINER }}
-          DEPLOYMENT: ${{ inputs.DEPLOYMENT }}
-          NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ needs.build.outputs.image_tag_build }}
-        run: |
-          echo "Updating $CONTAINER in $DEPLOYMENT to $IMAGE in the $NAMESPACE namespace."
-          kubectl set image deployment/$DEPLOYMENT  $CONTAINER=$IMAGE --record=true --namespace=${NAMESPACE}
 
       - name: "Slack Notify"
         if: success() || failure()
