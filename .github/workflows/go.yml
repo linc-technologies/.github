@@ -210,19 +210,19 @@ jobs:
 
       # Debug PR if found
       - run: echo "PR ${prNumber} ${prTitle} at ${prUrl}"
-        if: steps.PR.outputs.pr_found == 'true'
+        if: steps.pr.outputs.pr_found == 'true'
         env:
-          prNumber: ${{ steps.PR.outputs.number }}
-          prTitle: ${{ steps.PR.outputs.pr_title }}
-          prUrl: ${{ steps.PR.outputs.pr_url }}
+          prNumber: ${{ steps.pr.outputs.number }}
+          prTitle: ${{ steps.pr.outputs.pr_title }}
+          prUrl: ${{ steps.pr.outputs.pr_url }}
 
       - name: "Update PR with Rollback Steps"
-        if: steps.PR.outputs.pr_found == 'true'
+        if: steps.pr.outputs.pr_found == 'true'
         uses: actions/github-script@v6
         env:
           ROLLBACK_VERSION: ${{ needs.deploy.outputs.pre_deploy_revision }}
           DEPLOYMENT_VERSION: ${{ needs.deploy.outputs.post_deploy_revision }}
-          DEPLOYMENT_NAME: ${{ github.event.repository.name }}
+          DEPLOYMENT_NAME: ${{ needs.deploy.outputs.deploy_name }}
           NAMESPACE: ${{ needs.deploy.outputs.deploy_namespace }}
           PR: ${{ steps.pr.outputs.number }}
         with:
@@ -237,13 +237,22 @@ jobs:
 
             **${ROLLBACK_VERSION} => ${DEPLOYMENT_VERSION}** 
 
-            You can rollback with the following command:
+            You can view the history and status of the release with:
             \`\`\`console
-            kubectl rollout undo deployment ${DEPLOYMENT_NAME}-deployment
+            kubectl config use-context production-au-east-aks
+            helm -n ${NAMESPACE} history ${DEPLOYMENT_NAME}
+            helm -n ${NAMESPACE} status ${DEPLOYMENT_NAME}
             \`\`\`
 
-            Or, to set rollback using an explicit image tag:
+            Or, to rollback:
             \`\`\`console
-            kubectl set image deployment/${DEPLOYMENT_NAME}-deployment ${DEPLOYMENT_NAME}=${ROLLBACK_VERSION} --record=true --namespace=${NAMESPACE}
+            # Use the correct context
+            kubectl config use-context production-au-east-aks
+            
+            # Perform a diff on the rollback to ensure everything is cromulent
+            helm -n ${NAMESPACE} diff rollback ${DEPLOYMENT_NAME} <version>
+            
+            # Execute the final rollback
+            helm -n ${NAMESPACE} rollback ${DEPLOYMENT_NAME}
             \`\`\`
             `})
