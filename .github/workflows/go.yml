@@ -111,6 +111,11 @@ jobs:
     environment: ${{ github.ref_name }}
     runs-on: ubuntu-latest
     needs: [build]
+    outputs:
+      pre_deploy_revision: ${{ steps.export.outputs.pre_deploy_revision }}
+      post_deploy_revision: ${{ steps.export.outputs.post_deploy_revision }}
+      deploy_name: ${{ steps.export.outputs.deploy_name }}
+      deploy_namespace: ${{ steps.export.outputs.deploy_namespace }}
     steps:
 
       - name: "Checkout"
@@ -150,6 +155,25 @@ jobs:
         id: kubectl_version
         run: kubectl version
 
+      # Used by the post-deploy steps
+      - name: "Set Outputs"
+        id: export
+        env:
+          CONTAINER: ${{ github.event.repository.name }}
+          DEPLOYMENT: ${{ github.event.repository.name }}
+          NAMESPACE: ${{ github.ref_name }}
+          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+        run:
+          PRE_DEPLOY_REVISION=$(kubectl get deployment -n $NAMESPACE $DEPLOYMENT -o=jsonpath={.spec.template.spec.containers[0].image})  
+          POST_DEPLOY_REVISION=$IMAGE  
+          DEPLOY_NAME=$DEPLOYMENT  
+          DEPLOY_NAMESPACE=$NAMESPACE 
+          
+          echo "pre_deploy_revision=$PRE_DEPLOY_REVISION" >> $GITHUB_OUTPUT
+          echo "post_deploy_revision=$POST_DEPLOY_REVISION" >> $GITHUB_OUTPUT
+          echo "deploy_name=$DEPLOY_NAME" >> $GITHUB_OUTPUT
+          echo "deploy_namespace=DEPLOY_NAMESPACE" >> $GITHUB_OUTPUT
+
       - name: "Helm Deploy"
         id: helm_deploy
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
@@ -169,3 +193,66 @@ jobs:
           event: deploy
           success: ${{ !contains(steps.*.conclusion, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  post-deploy:
+    name: "Post Deploy"
+    if: ${{ github.ref_name == 'production' }}
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    continue-on-error: true
+    steps:
+
+      - name: "Find PR"
+        id: pr
+        uses: 8BitJonny/gh-get-current-pr@2.2.0
+
+      # Debug PR if found
+      - run: echo "PR ${prNumber} ${prTitle} at ${prUrl}"
+        if: steps.pr.outputs.pr_found == 'true'
+        env:
+          prNumber: ${{ steps.pr.outputs.number }}
+          prTitle: ${{ steps.pr.outputs.pr_title }}
+          prUrl: ${{ steps.pr.outputs.pr_url }}
+
+      - name: "Update PR with Rollback Steps"
+        if: steps.pr.outputs.pr_found == 'true'
+        uses: actions/github-script@v6
+        env:
+          ROLLBACK_VERSION: ${{ needs.deploy.outputs.pre_deploy_revision }}
+          DEPLOYMENT_VERSION: ${{ needs.deploy.outputs.post_deploy_revision }}
+          DEPLOYMENT_NAME: ${{ needs.deploy.outputs.deploy_name }}
+          NAMESPACE: ${{ needs.deploy.outputs.deploy_namespace }}
+          PR: ${{ steps.pr.outputs.number }}
+        with:
+          script: |
+            const { ROLLBACK_VERSION, DEPLOYMENT_VERSION, DEPLOYMENT_NAME, NAMESPACE, PR } = process.env
+
+            github.rest.issues.createComment({
+              issue_number: PR,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Whoosh! ✨ There's your code, off she goes! 🧙
+
+            **${ROLLBACK_VERSION} => ${DEPLOYMENT_VERSION}** 
+
+            You can view the history and status of the release with:
+            \`\`\`console
+            kubectl config use-context production-au-east-aks
+            helm -n ${NAMESPACE} history ${DEPLOYMENT_NAME}
+            helm -n ${NAMESPACE} status ${DEPLOYMENT_NAME}
+            \`\`\`
+
+            Or, to rollback:
+            \`\`\`console
+            # Use the correct context
+            kubectl config use-context production-au-east-aks
+            
+            # Perform a diff on the rollback to ensure everything is cromulent
+            helm -n ${NAMESPACE} diff rollback ${DEPLOYMENT_NAME} <version>
+            
+            # Execute the final rollback
+            helm -n ${NAMESPACE} rollback ${DEPLOYMENT_NAME}
+            \`\`\`
+            `})
