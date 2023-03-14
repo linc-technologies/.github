@@ -34,6 +34,7 @@ jobs:
         run: if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
       - name: "Lint"
+        id: golangci
         uses: golangci/golangci-lint-action@v3
         continue-on-error: true
         env:
