@@ -36,6 +36,8 @@ jobs:
       - name: "Lint"
         uses: golangci/golangci-lint-action@v3
         continue-on-error: true
+        env:
+          GOPRIVATE: github.com/linc-technologies
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: v1.51
