@@ -175,16 +175,16 @@ jobs:
           DEPLOYMENT: ${{ github.event.repository.name }}
           NAMESPACE: ${{ github.ref_name }}
           IMAGE: ${{ needs.build.outputs.image_tag_build }}
-        run:
+        run: |
           PRE_DEPLOY_REVISION=$(kubectl get deployment -n $NAMESPACE $DEPLOYMENT -o=jsonpath={.spec.template.spec.containers[0].image})  
           POST_DEPLOY_REVISION=$IMAGE  
           DEPLOY_NAME=$DEPLOYMENT  
           DEPLOY_NAMESPACE=$NAMESPACE 
           
-          echo "pre_deploy_revision=$PRE_DEPLOY_REVISION" >> $GITHUB_OUTPUT
-          echo "post_deploy_revision=$POST_DEPLOY_REVISION" >> $GITHUB_OUTPUT
-          echo "deploy_name=$DEPLOY_NAME" >> $GITHUB_OUTPUT
-          echo "deploy_namespace=DEPLOY_NAMESPACE" >> $GITHUB_OUTPUT
+          echo "pre_deploy_revision=${PRE_DEPLOY_REVISION}" >> $GITHUB_OUTPUT
+          echo "post_deploy_revision=${POST_DEPLOY_REVISION}" >> $GITHUB_OUTPUT
+          echo "deploy_name=${DEPLOY_NAME}" >> $GITHUB_OUTPUT
+          echo "deploy_namespace=${DEPLOY_NAMESPACE}" >> $GITHUB_OUTPUT
 
       - name: "Helm Deploy"
         id: helm_deploy
