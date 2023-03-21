@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       build_number: ${{ steps.export_build_tag.outputs.build_number }}
+      docker_build_number: ${{ steps.export_build_tag.outputs.docker_build_number }}
     steps:
 
       - name: "Checkout"
@@ -174,7 +175,7 @@ jobs:
           CONTAINER: ${{ github.event.repository.name }}
           DEPLOYMENT: ${{ github.event.repository.name }}
           NAMESPACE: ${{ github.ref_name }}
-          IMAGE: ${{ needs.build.outputs.image_tag_build }}
+          IMAGE: ${{ needs.build.outputs.docker_build_number }}
         run: |
           PRE_DEPLOY_REVISION=$(kubectl get deployment -n $NAMESPACE $DEPLOYMENT -o=jsonpath={.spec.template.spec.containers[0].image})  
           POST_DEPLOY_REVISION=$IMAGE  
