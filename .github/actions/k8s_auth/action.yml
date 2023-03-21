@@ -16,11 +16,9 @@ runs:
 
     - name: "Configure Kubectl"
       run: |
+        echo "${{inputs.cert}}" | base64 -d > ./ca.crt
         kubectl config set-credentials default --token=${{ inputs.token }}
-        # If cert provided...
-        # kubectl config set-cluster default --server=${{ inputs.server }} --certificate-authority=ca.crt
-        # If cert not provided
-        kubectl config set-cluster default --server=${{ inputs.server }} --insecure-skip-tls-verify=true
+        kubectl config set-cluster default --server=${{ inputs.server }} --certificate-authority=./ca.crt
         kubectl config set-context default --cluster=default --user=default
         kubectl config use-context default
       shell: bash
