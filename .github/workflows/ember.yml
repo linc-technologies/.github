@@ -256,7 +256,7 @@ jobs:
           NAME=$(echo "${{ github.event.repository.name }}" | sed -e 's/linced-//g')
           
           # Accomodate for service and app with the same name
-          if [ "$NAME" == "linced-enrolments" ]; then 
+          if [ "$NAME" == "enrolments" ]; then 
             NAME="enrol"; 
           fi
           
