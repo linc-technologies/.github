@@ -39,7 +39,7 @@ runs:
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": ${{ toJSON(github.event.head_commit.message) || 'No commit message' }}
+                      "text": ${{ toJSON(github.event.head_commit.message || env.EMPTY_COMMIT_MSG) }}
                     },
                     "accessory": {
                       "type": "image",
@@ -61,6 +61,7 @@ runs:
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.webhook_url }}
         SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        EMPTY_COMMIT_MSG: _No commit message_
 
     - name: "Deployment Notification"
       if: inputs.event == 'deploy'
