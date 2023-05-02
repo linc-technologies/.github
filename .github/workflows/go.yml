@@ -35,16 +35,15 @@ jobs:
         run: if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
       - name: "Lint"
-        id: golangci
+        id: lint
         uses: golangci/golangci-lint-action@v3
-        continue-on-error: true
         env:
           GOPRIVATE: github.com/linc-technologies
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.51
+          version: latest
           # https://golangci-lint.run/usage/configuration/#command-line-options
-          args: --issues-exit-code=0
+          args: --issues-exit-code=0 --build-tags=internal
 
       - name: "Build"
         id: build
