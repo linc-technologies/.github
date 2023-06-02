@@ -41,7 +41,7 @@ jobs:
           GOPRIVATE: github.com/linc-technologies
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: latest
+          version: v1.52
           # https://golangci-lint.run/usage/configuration/#command-line-options
           args: --issues-exit-code=0 --build-tags=internal --go=1.19 --timeout=2m --verbose
 
