@@ -15,6 +15,12 @@ jobs:
       - name: "Checkout"
         id: checkout
         uses: actions/checkout@v3
+      
+      - name: "Git HTTPS"
+        id: git_https
+        uses: linc-technologies/.github/.github/actions/git_http@master
+        with:
+          pat: ${{ secrets.CICD_TOKEN }}
 
       - name: "Setup Go"
         id: setup_go
@@ -37,12 +43,6 @@ jobs:
           version: v1.52
           # https://golangci-lint.run/usage/configuration/#command-line-options
           args: --issues-exit-code=0 --build-tags=internal --go=${{ matrix.go }} --timeout=2m --verbose
-
-      - name: "Git HTTPS"
-        id: git_https
-        uses: linc-technologies/.github/.github/actions/git_http@master
-        with:
-          pat: ${{ secrets.CICD_TOKEN }}
 
       - name: "Setup Mongo"
         id: setup_mongo
