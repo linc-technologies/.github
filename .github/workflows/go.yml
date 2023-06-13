@@ -100,7 +100,7 @@ jobs:
           context: .
           push: false
           tags: ${{ steps.export_build_tag.outputs.docker_build_number }}
-          file: ${{ steps.check_files.outputs.files_exists == 'true' && "Dockerfile.release" || "Dockerfile.drone" }}
+          file: ${{ steps.check_files.outputs.files_exists == 'true' && 'Dockerfile.release' || 'Dockerfile.drone' }}
 
       - name: "Build and export to Docker (Environment Based)"
         id: build_and_export_to_docker_environment_based
@@ -112,7 +112,7 @@ jobs:
           tags: |
             ${{ steps.export_build_tag.outputs.docker_build_number }}
             ${{ steps.export_build_tag.outputs.docker_build_branch }}
-          file: ${{ steps.check_files.outputs.files_exists == 'true' && "Dockerfile.release" || "Dockerfile.drone" }}
+          file: ${{ steps.check_files.outputs.files_exists == 'true' && 'Dockerfile.release' || 'Dockerfile.drone' }}
 
       - name: "Slack Notify"
         if: success() || failure()
