@@ -1,0 +1,37 @@
+name: "File Check"
+description: "GLOB ON GLOB ON GLOB."
+inputs:
+  files:
+    description: "Do the file exist? Lemme ask `ls`"
+    required: true
+    default: ""
+outputs:
+  bueno:
+    description: "Is ok? Si senor"
+    value: ${{ steps.check.outputs.bueno }}
+runs:
+  using: "composite"
+  steps:
+
+    - name: "Check Files Exist"
+      id: check
+      env:
+        FILES: ${{ inputs.files }}
+      run: |
+        # Check the files
+        ls ${FILES}
+        
+        # Exit code check, return correct string
+        if [ "$?" -ne "0" ]; then 
+          echo "😿 NO BUENO.";
+          BUENO="false"
+        else 
+          echo "🥰 BUENO!";
+          BUENO="true"
+        fi
+        
+        
+        # Export result
+        echo "bueno=$BUENO" >> $GITHUB_OUTPUT
+
+      shell: bash
