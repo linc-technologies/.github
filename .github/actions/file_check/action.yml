@@ -18,9 +18,10 @@ runs:
       env:
         FILES: ${{ inputs.files }}
       run: |
+        
         # Check the files
         ls ${FILES}
-        
+                
         # Exit code check, return correct string
         if [ "$?" -ne "0" ]; then 
           echo "😿 NO BUENO.";
@@ -30,8 +31,9 @@ runs:
           BUENO="true"
         fi
         
-        
         # Export result
         echo "bueno=$BUENO" >> $GITHUB_OUTPUT
 
-      shell: bash
+      # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#exit-codes-and-error-action-preference
+      # https://stackoverflow.com/a/73069669/16588529
+      shell: bash {0}
