@@ -86,6 +86,12 @@ jobs:
         id: export_build_tag
         uses: linc-technologies/.github/.github/actions/build_label@master
 
+      - name: "Check Dockerfile.release exists"
+        id: check_files
+        uses: andstor/file-existence-action@v2
+        with:
+          files: "Dockerfile.release"
+
       - name: "Build and export to Docker"
         id: build_and_export_to_docker
         uses: docker/build-push-action@v4
@@ -94,7 +100,7 @@ jobs:
           context: .
           push: false
           tags: ${{ steps.export_build_tag.outputs.docker_build_number }}
-          file: Dockerfile.drone
+          file: ${{ steps.check_files.outputs.files_exists == 'true' && "Dockerfile.release" || "Dockerfile.drone" }}
 
       - name: "Build and export to Docker (Environment Based)"
         id: build_and_export_to_docker_environment_based
@@ -106,7 +112,7 @@ jobs:
           tags: |
             ${{ steps.export_build_tag.outputs.docker_build_number }}
             ${{ steps.export_build_tag.outputs.docker_build_branch }}
-          file: Dockerfile.drone
+          file: ${{ steps.check_files.outputs.files_exists == 'true' && "Dockerfile.release" || "Dockerfile.drone" }}
 
       - name: "Slack Notify"
         if: success() || failure()
