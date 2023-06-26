@@ -32,7 +32,13 @@ jobs:
       - name: "Format"
         if: ${{ github.ref_name != 'production' }}
         id: format
-        run: if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
+        run: |
+          if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then
+            # Print out the list of files which have failed gofmt
+            gofmt -l .
+            # Force an exit error to inform GH Actions go format check has failed.
+            exit 1
+          fi
 
       - name: "Lint"
         id: lint
