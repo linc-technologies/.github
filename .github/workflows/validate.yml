@@ -1,0 +1,38 @@
+name: "Big Brother"
+
+on:
+  workflow_call:
+    inputs:
+      jobs:
+        type: string
+        description: "A string representing a JSON array of the job outputs that are required to pass before a PR can be accepted. Ex: 'with: toJSON(needs.*.result)'"
+        required: true
+
+jobs:
+  verify:
+    name: "Verify"
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+
+      # If we're on a release branch, do not check the provided jobs.
+      # This is important for merging `*/proto` module releases, as they do not trigger an application build.
+      - name: "Evaluate Release Please"
+        id: release-please
+        if: ${{ startsWith(github.head_ref, 'release-please') }}
+        run: |
+          echo "pass=true" >> $GITHUB_OUTPUT
+
+      - name: "Verify"
+        # Add previous steps to the if eval here using an or (||) condition
+        if: ${{ !steps.release-please.outputs.pass}}
+        run: | 
+          
+          # Handle verifying the result of passed in jobs
+          if [ "${{ contains(inputs.jobs, 'failure') }}" == "true" ]; then
+            echo "One or more steps outcomes failed. This needs to be resolved before merge."
+            exit 1
+          fi
+
+          # We made it to the end, everything must be ok...Right?
+          exit 0
