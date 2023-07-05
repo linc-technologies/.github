@@ -287,3 +287,10 @@ jobs:
           event: deploy
           success: ${{ !contains(steps.*.conclusion, 'failure') }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  iiiii:
+    if: ${{ always() }}
+    needs: [build, deploy]
+    uses: ./.github/workflows/validate.yml
+    with:
+      jobs: ${{ toJSON(needs.*.result) }}

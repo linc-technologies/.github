@@ -280,3 +280,10 @@ jobs:
             helm -n ${NAMESPACE} rollback ${DEPLOYMENT_NAME}
             \`\`\`
             `})
+
+  iiiii:
+    if: ${{ always() }}
+    needs: [build, deploy]
+    uses: ./.github/workflows/validate.yml
+    with:
+      jobs: ${{ toJSON(needs.*.result) }}
