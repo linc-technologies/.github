@@ -28,13 +28,6 @@ jobs:
         id: checkout
         uses: actions/checkout@v3
 
-      - name: "Git SSH"
-        id: git_ssh
-        if: ${{ github.actor != 'dependabot[bot]' }}
-        uses: linc-technologies/.github/.github/actions/git_ssh@master
-        with:
-          key: ${{ secrets.VCS_SSH_KEY }}
-
       - name: "Setup Node 10.21"
         id: setup_node
         uses: actions/setup-node@v3
