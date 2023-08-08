@@ -26,7 +26,7 @@ jobs:
         id: setup_go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.19' # The Go version to download (if necessary) and use.
+          go-version: "1.20" # The Go version to download (if necessary) and use.
 #          cache: true $ TODO: Throwing issues with repeat builds....
 
       - name: "Format"
@@ -49,7 +49,7 @@ jobs:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: v1.52
           # https://golangci-lint.run/usage/configuration/#command-line-options
-          args: --issues-exit-code=0 --build-tags=internal --go=1.19 --timeout=2m --verbose
+          args: --issues-exit-code=0 --build-tags=internal --go=1.20 --timeout=2m --verbose
 
       - name: "Build"
         id: build
