@@ -46,6 +46,7 @@ jobs:
 
       - name: "Login to ACR"
         id: login_to_acr
+        if: ${{ github.actor != 'dependabot[bot]' }}
         uses: docker/login-action@v2
         with:
           registry: linced.azurecr.io
