@@ -217,8 +217,8 @@ jobs:
         uses: linc-technologies/.github/.github/actions/k8s_auth@master
         with:
           server: ${{ secrets.DEVELOPMENT_EU_WEST_2_EKS_SERVER }}
-          token: ${{ secrets.DEVELOPMENT_EU_WEST_2_EKS_CERT }}
-          cert: ${{ secrets.DEVELOPMENT_EU_WEST_2_EKS_TOKEN }}
+          token: ${{ secrets.DEVELOPMENT_EU_WEST_2_EKS_TOKEN }}
+          cert: ${{ secrets.DEVELOPMENT_EU_WEST_2_EKS_CERT }}
 
       - name: "AWS: Helm Deploy"
         id: helm_deploy_eu
