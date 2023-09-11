@@ -19,6 +19,9 @@ outputs:
   docker_build_branch:
     description: "A full Docker image tag based on branch."
     value: ${{ steps.export.outputs.docker_build_branch }}
+  docker_build_branch_ghcr:
+    description: "A full Docker image tag based on branch targeted at GHCR."
+    value: ${{ steps.export.outputs.docker_build_branch_ghcr }}
 runs:
   using: "composite"
   steps:
@@ -39,8 +42,10 @@ runs:
         if [ -z "$MATRIX" ] ; then 
           echo "docker_build_number=linced.azurecr.io/linc-ed/$REPO:$BUILD" >> $GITHUB_OUTPUT
           echo "docker_build_branch=linced.azurecr.io/linc-ed/$REPO:$BRANCH" >> $GITHUB_OUTPUT
+          echo "docker_build_branch_ghcr=ghcr.io/${{ github.repository }}:$BRANCH" >> $GITHUB_OUTPUT
         else 
           echo "docker_build_number=linced.azurecr.io/linc-ed/$REPO-$MATRIX:$BUILD" >> $GITHUB_OUTPUT
           echo "docker_build_branch=linced.azurecr.io/linc-ed/$REPO-$MATRIX:$BRANCH" >> $GITHUB_OUTPUT
+          echo "docker_build_branch_ghcr=ghcr.io/${{ github.repository }}:$BRANCH" >> $GITHUB_OUTPUT
         fi
       shell: bash
