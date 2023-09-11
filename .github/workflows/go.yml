@@ -166,8 +166,18 @@ jobs:
       deploy_namespace: ${{ steps.export.outputs.deploy_namespace }}
     steps:
 
+      - name: "Checkout Dev"
+        id: checkout_dev
+        if: ${{ github.ref == 'refs/heads/development' }}
+        uses: actions/checkout@v3
+        with:
+          repository: linc-technologies/helm
+          token: ${{ secrets.CICD_TOKEN }}
+          ref: "dev"
+
       - name: "Checkout"
         id: checkout
+        if: ${{ github.ref != 'refs/heads/development' }}
         uses: actions/checkout@v3
         with:
           repository: linc-technologies/helm
