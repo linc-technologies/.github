@@ -26,7 +26,7 @@ jobs:
 
       - name: "Checkout"
         id: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Git SSH"
         id: git_ssh
@@ -222,7 +222,7 @@ jobs:
 
       - name: "Checkout"
         id: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: linc-technologies/helm
           token: ${{ secrets.CICD_TOKEN }}

@@ -17,7 +17,7 @@ jobs:
 
       - name: "Checkout"
         id: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Git HTTPS"
         id: git_https
@@ -169,7 +169,7 @@ jobs:
       - name: "Checkout Dev"
         id: checkout_dev
         if: ${{ github.ref == 'refs/heads/development' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: linc-technologies/helm
           token: ${{ secrets.CICD_TOKEN }}
@@ -178,7 +178,7 @@ jobs:
       - name: "Checkout"
         id: checkout
         if: ${{ github.ref != 'refs/heads/development' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: linc-technologies/helm
           token: ${{ secrets.CICD_TOKEN }}
