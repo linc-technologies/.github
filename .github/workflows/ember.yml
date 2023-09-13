@@ -178,7 +178,7 @@ jobs:
       - name: "Set up Docker Buildx"
         id: set_up_docker_buildx
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: "Export Build Tag"
         id: export_build_tag
