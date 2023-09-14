@@ -231,7 +231,7 @@ jobs:
         id: install_kubectl
         uses: azure/setup-kubectl@v3
         with:
-          version: 'v1.25.5'
+          version: 'v1.26.8'
 
       # If we're deploying from a non-production branch, configure Kubectl with Dev cluster secrets
       - name: "Configure Kubectl (development-au-east)"
@@ -276,6 +276,7 @@ jobs:
           chart: "app"
           release: ${{ steps.release_name.outputs.release_name }}
           namespace: ${{ github.ref_name }}
+          values: ${{ github.ref_name }}
           tag: ${{ needs.build.outputs.build_number }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
