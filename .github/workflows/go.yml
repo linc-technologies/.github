@@ -257,7 +257,7 @@ jobs:
 
       - name: "AWS: Helm Deploy"
         id: helm_deploy_eu
-        if: ${{ github.ref == 'refs/heads/development' }}
+        if: ${{ github.ref_name == 'development' }}
         continue-on-error: true
         uses: linc-technologies/.github/.github/actions/deploy_helm@master
         with:
@@ -265,7 +265,7 @@ jobs:
           release: ${{ github.event.repository.name }}
           namespace: ${{ github.ref_name }}
           values: "${{ github.ref_name }}.eu"
-          tag: ${{ needs.build.outputs.build_number }}
+          tag: ${{ github.ref_name }}
           oci_user: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
           oci_pass: ${{ secrets.AZURE_ACR_LINCED_PASSWORD }}
 
