@@ -10,6 +10,9 @@ inputs:
   namespace:
     description: "The Kubernetes namespace to install the release into."
     required: true
+  values:
+    description: "The name of the values file to use. This value will be interpolated into 'values.%s.yaml', and is typically the namespace name."
+    required: true
   tag:
     description: "The image build tag (everything after the repository name and ':') to update the deployment with. Ie, `development` or `10042`."
     required: true
@@ -28,28 +31,31 @@ runs:
       with:
         version: '3.12.0'
 
+    - name: "Login to ACR"
+      run: |
+        helm registry login linced.azurecr.io --username ${{ inputs.oci_user }} --password ${{ inputs.oci_pass }}
+      shell: bash
+
     # If the namespace is development, use the latest version, including pre-releases
     # --devel: use development versions, too. Equivalent to version '>0.0.0-0'. If --version is set, this is ignored
     - name: "Helm Deploy"
       id: devel
       if: ${{ inputs.namespace == 'development' }}
       run: |
-        helm registry login linced.azurecr.io --username ${{ inputs.oci_user }} --password ${{ inputs.oci_pass }}
         helm upgrade -i ${{ inputs.release }} oci://linced.azurecr.io/helm/${{ inputs.chart }}-chart \
           --namespace ${{ inputs.namespace }} \
-          -f values/${{ inputs.chart }}-chart/${{ inputs.release }}/values.${{ inputs.namespace }}.yaml \
+          -f values/${{ inputs.chart }}-chart/${{ inputs.release }}/values.${{ inputs.values }}.yaml \
           --set image.tag=${{ inputs.tag }} \
           --wait --timeout 2m --devel
       shell: bash
 
     # Otherwise use the latest full version
     - name: "Helm Deploy"
-      if: steps.devel.conclusion == 'skipped'
+      if: ${{ steps.devel.conclusion == 'skipped' }}
       run: |
-        helm registry login linced.azurecr.io --username ${{ inputs.oci_user }} --password ${{ inputs.oci_pass }}
         helm upgrade -i ${{ inputs.release }} oci://linced.azurecr.io/helm/${{ inputs.chart }}-chart \
           --namespace ${{ inputs.namespace }} \
-          -f values/${{ inputs.chart }}-chart/${{ inputs.release }}/values.${{ inputs.namespace }}.yaml \
+          -f values/${{ inputs.chart }}-chart/${{ inputs.release }}/values.${{ inputs.values }}.yaml \
           --set image.tag=${{ inputs.tag }} \
           --wait --timeout 2m
       shell: bash
