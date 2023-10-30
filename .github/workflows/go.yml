@@ -79,7 +79,7 @@ jobs:
 
       - name: "Set up Docker Buildx"
         id: set_up_docker_buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: "Login to ACR"
         id: login_to_acr
