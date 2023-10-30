@@ -21,7 +21,7 @@ jobs:
 
       - name: "Login to ACR"
         id: login_to_acr
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: linced.azurecr.io
           username: ${{ secrets.AZURE_ACR_LINCED_USERNAME }}
