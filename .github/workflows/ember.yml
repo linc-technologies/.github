@@ -37,7 +37,7 @@ jobs:
 
       - name: "Setup Node 10.21"
         id: setup_node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 10.21
           cache: 'npm'
