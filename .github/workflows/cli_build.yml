@@ -7,10 +7,19 @@ jobs:
   build:
     name: "Build"
     runs-on: ubuntu-latest
+    env:
+      GOPATH: ${{ github.workspace }}
+      GOBIN: ${{ github.workspace }}/bin
+      GOPRIVATE: github.com/linc-technologies
+    defaults:
+      run:
+        working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
     steps:
       - name: "Checkout"
         id: checkout
         uses: actions/checkout@v4
+        with:
+          path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
 
       - name: "Git HTTPS"
         id: git_https
@@ -39,8 +48,6 @@ jobs:
 
       - name: "Build"
         id: build
-        env:
-          GOPRIVATE: github.com/linc-technologies
         run: |
           export PATH=$HOME/bin/:$GOPATH/bin/:$PATH
           make
