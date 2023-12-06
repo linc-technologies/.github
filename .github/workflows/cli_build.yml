@@ -26,7 +26,11 @@ jobs:
 
       - name: "Format"
         id: format
-        run: if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
+        run: |
+          if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then
+            gofmt -l .
+            exit 1; 
+          fi
 
       - name: "Setup Deps"
         id: setup_deps
