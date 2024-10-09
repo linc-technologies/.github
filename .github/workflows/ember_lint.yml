@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: ${{ inputs.node_version }}
           cache: 'yarn'
-          cache-dependency-path: linced-*/yarn.lock
+          cache-dependency-path: yarn.lock
           registry-url: "https://npm.pkg.github.com"
 
       - name: "Install Dependencies (yarn)"
