@@ -64,7 +64,7 @@ jobs:
       - name: "Set Branch Environment Variables"
         id: set_branch_environment_variables
         if: contains(fromJson('["testing", "development", "staging", "production"]'), github.ref_name)
-        uses: iamtheyammer/branch-env-vars@v1.2.1
+        uses: iamtheyammer/branch-env-vars@v1.2.2
         with:
           bevOverwrite: true
           bevSetEmptyVars: true
