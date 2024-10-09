@@ -1,0 +1,79 @@
+name: "Ember Lint"
+
+on:
+  workflow_call:
+    inputs:
+      continue-on-error:
+        default: false
+        type: boolean
+        required: false
+        description: 'Enable skipping over lint errors.'
+      node_version:
+        default: "12.22"
+        type: string
+        required: false
+        description: 'The version of node to configure and use.'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    name: "Lint"
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: "Checkout"
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: "Setup Node ${{ inputs.node_version }} (yarn)"
+        id: setup_node_yarn
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: 'yarn'
+          cache-dependency-path: linced-*/yarn.lock
+          registry-url: "https://npm.pkg.github.com"
+
+      - name: "Install Dependencies (yarn)"
+        id: install_dependencies_yarn
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+        run: |
+          cd linced-*
+          yarn run ci
+
+      - name: "Lint JavaScript (yarn)"
+        id: lint_js_yarn
+        continue-on-error: ${{ inputs.continue-on-error }}
+        run: |
+          cd linced-*
+          yarn run lint:js
+
+      - name: "Lint Handlebar Templates (yarn)"
+        id: lint_hbs_yarn
+        continue-on-error: ${{ inputs.continue-on-error }}
+        run: |
+          cd linced-*
+          yarn run lint:hbs
+
+
+      - name: "Slack Notify Success"
+        uses: linc-technologies/github/.github/actions/slack_direct_message@main
+        if: ${{ success() }}
+        continue-on-error: true
+        with:
+          user: ${{ github.actor }}
+          message: ":white_check_mark: :peepo_happy: Ember lint ${{ job.status }}: ${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      - name: "Slack Notify Failure"
+        uses: linc-technologies/github/.github/actions/slack_direct_message@main
+        if: ${{ failure() }}
+        continue-on-error: true
+        with:
+          user: ${{ github.actor }}
+          message: ":github-on-fire: Ember lint ${{ job.status }}: ${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
