@@ -97,7 +97,7 @@ jobs:
           npm publish --access public --ignore-scripts --@linc-technologies:registry='https://registry.npmjs.org'
 
       - name: "Publish (npm)"
-        id: publish_yarn
+        id: publish_npm
         if: ${{ inputs.public == 'true' && steps.publish_prerelease_yarn.outcome == 'skipped' && steps.publish_backport_yarn.outcome == 'skipped' }}
         run: |
           npm set "//registry.npmjs.org/:_authToken=${NPM_REGISTRY_TOKEN}"
