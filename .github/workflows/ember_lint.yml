@@ -58,22 +58,3 @@ jobs:
         run: |
           cd linced-*
           yarn run lint:hbs
-
-
-      - name: "Slack Notify Success"
-        uses: linc-technologies/github/.github/actions/slack_direct_message@main
-        if: ${{ success() }}
-        continue-on-error: true
-        with:
-          user: ${{ github.actor }}
-          message: ":white_check_mark: :peepo_happy: Ember lint ${{ job.status }}: ${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
-          token: ${{ secrets.SLACK_BOT_TOKEN }}
-
-      - name: "Slack Notify Failure"
-        uses: linc-technologies/github/.github/actions/slack_direct_message@main
-        if: ${{ failure() }}
-        continue-on-error: true
-        with:
-          user: ${{ github.actor }}
-          message: ":github-on-fire: Ember lint ${{ job.status }}: ${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
-          token: ${{ secrets.SLACK_BOT_TOKEN }}
