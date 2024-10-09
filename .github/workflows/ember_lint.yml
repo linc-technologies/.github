@@ -42,19 +42,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
         run: |
-          cd linced-*
           yarn run ci
 
       - name: "Lint JavaScript (yarn)"
         id: lint_js_yarn
         continue-on-error: ${{ inputs.continue-on-error }}
         run: |
-          cd linced-*
           yarn run lint:js
 
       - name: "Lint Handlebar Templates (yarn)"
         id: lint_hbs_yarn
         continue-on-error: ${{ inputs.continue-on-error }}
         run: |
-          cd linced-*
           yarn run lint:hbs
