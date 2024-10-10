@@ -60,14 +60,14 @@ jobs:
 
       - name: "Publish Pre-release (github packages)"
         id: publish_prerelease_yarn
-        if: ${{ inputs.prerelease == 'true' }}
+        if: ${{ inputs.prerelease }}
         run: |
           TAG=$(cat package.json | jq '.version' | sed -e 's/".*-\(.*\)"/\1/g')
           yarn publish --tag=$TAG
 
       - name: "Publish Pre-release (npm)"
         id: publish_prerelease_npm
-        if: ${{ inputs.public == 'true' && inputs.prerelease == 'true' }}
+        if: ${{ inputs.public && inputs.prerelease }}
         run: |
           TAG=$(cat package.json | jq '.version' | sed -e 's/".*-\(.*\)"/\1/g')
           npm set "//registry.npmjs.org/:_authToken=${NPM_REGISTRY_TOKEN}"
@@ -75,14 +75,14 @@ jobs:
 
       - name: "Publish Backport (github packages)"
         id: publish_backport_yarn
-        if: ${{ inputs.backport == 'true' }}
+        if: ${{ inputs.backport }}
         run: |
           TAG=$(cat package.json| jq -r .version)
           yarn publish --new-version=$TAG
 
       - name: "Publish Backport (npm)"
         id: publish_backport_npm
-        if: ${{ inputs.public == 'true' && inputs.backport == 'true' }}
+        if: ${{ inputs.public && inputs.backport }}
         run: |
           TAG=$(cat package.json| jq -r .version)
           npm set "//registry.npmjs.org/:_authToken=${NPM_REGISTRY_TOKEN}"
@@ -93,12 +93,10 @@ jobs:
         if: ${{ steps.publish_prerelease_yarn.outcome == 'skipped' && steps.publish_backport_yarn.outcome == 'skipped' }}
         run: |
           yarn publish
-          npm set "//registry.npmjs.org/:_authToken=${NPM_REGISTRY_TOKEN}"
-          npm publish --access public --ignore-scripts --@linc-technologies:registry='https://registry.npmjs.org'
 
       - name: "Publish (npm)"
         id: publish_npm
-        if: ${{ inputs.public == 'true' && steps.publish_prerelease_yarn.outcome == 'skipped' && steps.publish_backport_yarn.outcome == 'skipped' }}
+        if: ${{ inputs.public && steps.publish_prerelease_yarn.outcome == 'skipped' && steps.publish_backport_yarn.outcome == 'skipped' }}
         run: |
           npm set "//registry.npmjs.org/:_authToken=${NPM_REGISTRY_TOKEN}"
           npm publish --access public --ignore-scripts --@linc-technologies:registry='https://registry.npmjs.org'
