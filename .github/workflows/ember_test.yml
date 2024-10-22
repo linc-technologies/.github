@@ -1,0 +1,36 @@
+name: "Ember Test"
+
+on:
+  workflow_call:
+    inputs:
+      continue-on-error:
+        default: false
+        type: boolean
+        required: false
+        description: 'Enable skipping over lint errors.'
+      node_version:
+        default: "12.22"
+        type: string
+        required: false
+        description: 'The version of node to configure and use.'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  test:
+    name: "Test"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "node_setup"
+        id: node_setup
+        uses: linc-technologies/.github/.github/actions/node_setup@main
+        with:
+          node_version: ${{ inputs.node_version }}
+
+      - name: "Ember Test"
+        id: ember_test
+        continue-on-error: ${{ inputs.continue-on-error }}
+        run: |
+          yarn run test:ember
