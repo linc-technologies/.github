@@ -1,0 +1,31 @@
+name: "Node Setup"
+description: "centralised node_setup for all workflows"
+inputs:
+  node_version:
+    default: "12.22"
+    type: string
+    required: false
+    description: 'The version of node to configure and use.'
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Checkout"
+      id: checkout
+      uses: actions/checkout@v4
+
+    - name: "Setup Node ${{ inputs.node_version }} (yarn)"
+      id: setup_node_yarn
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: 'yarn'
+        cache-dependency-path: yarn.lock
+        registry-url: "https://npm.pkg.github.com"
+
+    - name: "Install Dependencies (yarn)"
+      id: install_dependencies_yarn
+      env:
+        NODE_AUTH_TOKEN: ${{ github.token }}
+      run: |
+        yarn run ci

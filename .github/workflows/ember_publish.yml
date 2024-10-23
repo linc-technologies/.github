@@ -39,24 +39,14 @@ jobs:
       contents: read
       packages: write
     env:
-      NODE_AUTH_TOKEN: ${{github.token}}
+      NODE_AUTH_TOKEN: ${{ github.token }}
       NPM_REGISTRY_TOKEN: ${{ secrets.npm_token }}
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: "Setup Node ${{ inputs.node_version }}"
-        id: setup_node_yarn
-        uses: actions/setup-node@v4
+      - name: "node_setup"
+        id: node_setup
+        uses: linc-technologies/.github/.github/actions/node_setup@main
         with:
-          node-version: ${{ inputs.node_version }}
-          cache: 'yarn'
-          cache-dependency-path: yarn.lock
-          registry-url: "https://npm.pkg.github.com"
-
-      - name: "Install Dependencies"
-        id: install_dependencies_yarn
-        run: yarn run ci
+          node_version: ${{ inputs.node_version }}
 
       - name: "Publish Pre-release (github packages)"
         id: publish_prerelease_yarn

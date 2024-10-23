@@ -19,8 +19,8 @@ permissions:
   packages: read
 
 jobs:
-  lint:
-    name: "Lint"
+  test:
+    name: "Test"
     runs-on: ubuntu-latest
     steps:
       - name: "node_setup"
@@ -29,14 +29,8 @@ jobs:
         with:
           node_version: ${{ inputs.node_version }}
 
-      - name: "Lint JavaScript (yarn)"
-        id: lint_js_yarn
+      - name: "Ember Test"
+        id: ember_test
         continue-on-error: ${{ inputs.continue-on-error }}
         run: |
-          yarn run lint:js
-
-      - name: "Lint Handlebar Templates (yarn)"
-        id: lint_hbs_yarn
-        continue-on-error: ${{ inputs.continue-on-error }}
-        run: |
-          yarn run lint:hbs
+          yarn run test:ember
